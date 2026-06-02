@@ -585,7 +585,7 @@ const aiReviewStatus = document.getElementById("aiReviewStatus");
 const aiReviewOutput = document.getElementById("aiReviewOutput");
 
 function readJson(key, fallback) {
-  const item = localStorage.getItem(key);
+  const item = readStorage(key);
 
   if (!item) {
     return fallback;
@@ -595,6 +595,40 @@ function readJson(key, fallback) {
     return JSON.parse(item);
   } catch {
     return fallback;
+  }
+}
+
+function readStorage(key, fallback = null) {
+  try {
+    const item = localStorage.getItem(key);
+    return item === null ? fallback : item;
+  } catch (error) {
+    console.warn(`Unable to read localStorage key "${key}".`, error);
+    return fallback;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.warn(`Unable to save localStorage key "${key}".`, error);
+    return false;
+  }
+}
+
+function writeJson(key, value) {
+  return writeStorage(key, JSON.stringify(value));
+}
+
+function removeStorage(key) {
+  try {
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.warn(`Unable to remove localStorage key "${key}".`, error);
+    return false;
   }
 }
 
@@ -834,63 +868,63 @@ function convertOldPythonData(data) {
 }
 
 function saveGoals() {
-  localStorage.setItem(goalsKey, JSON.stringify(goals));
+  writeJson(goalsKey, goals);
 }
 
 function saveHistory() {
-  localStorage.setItem(historyKey, JSON.stringify(history));
+  writeJson(historyKey, history);
 }
 
 function saveHabits() {
-  localStorage.setItem(habitsKey, JSON.stringify(habitState));
-  localStorage.setItem(lastHabitDateKey, habitState.date);
+  writeJson(habitsKey, habitState);
+  writeStorage(lastHabitDateKey, habitState.date);
 }
 
 function saveHabitHistory() {
-  localStorage.setItem(habitHistoryKey, JSON.stringify(habitHistory));
+  writeJson(habitHistoryKey, habitHistory);
 }
 
 function saveNonNegotiables() {
-  localStorage.setItem(nonNegotiablesKey, JSON.stringify(nonNegotiables));
+  writeJson(nonNegotiablesKey, nonNegotiables);
 }
 
 function saveGoalCategories() {
-  localStorage.setItem(goalCategoriesKey, JSON.stringify(goalCategories));
+  writeJson(goalCategoriesKey, goalCategories);
 }
 
 function saveAiWeeklyReviews() {
-  localStorage.setItem(aiWeeklyReviewsKey, JSON.stringify(aiWeeklyReviews));
+  writeJson(aiWeeklyReviewsKey, aiWeeklyReviews);
 }
 
 function saveJournal() {
   journalEntries[getTodayString()] = getJournalText();
-  localStorage.setItem(journalKey, JSON.stringify(journalEntries));
+  writeJson(journalKey, journalEntries);
   renderWelcomeState();
   renderWeeklyReview();
 }
 
 function savePlanningGoals() {
-  localStorage.setItem(planningGoalsKey, JSON.stringify(planningGoals));
+  writeJson(planningGoalsKey, planningGoals);
 }
 
 function saveFinance() {
-  localStorage.setItem(financeKey, JSON.stringify(financeEntries));
+  writeJson(financeKey, financeEntries);
 }
 
 function saveTransactions() {
-  localStorage.setItem(transactionKey, JSON.stringify(financeTransactions));
+  writeJson(transactionKey, financeTransactions);
 }
 
 function saveFinanceBudget() {
-  localStorage.setItem(financeBudgetKey, JSON.stringify(financeBudget));
+  writeJson(financeBudgetKey, financeBudget);
 }
 
 function saveSavingsGoal() {
-  localStorage.setItem(savingsGoalKey, JSON.stringify(savingsGoalPercent));
+  writeJson(savingsGoalKey, savingsGoalPercent);
 }
 
 function saveSettings() {
-  localStorage.setItem(settingsKey, JSON.stringify(userSettings));
+  writeJson(settingsKey, userSettings);
 }
 
 function getProfile() {
@@ -975,8 +1009,8 @@ function renderWelcomeState() {
     <article class="checklist-item ${item.done ? "done" : ""}">
       <span class="check-dot">${item.done ? "Done" : ""}</span>
       <div>
-        <strong>${item.label}</strong>
-        <p>${item.detail}</p>
+        <strong>${escapeHtml(item.label)}</strong>
+        <p>${escapeHtml(item.detail)}</p>
       </div>
     </article>
   `).join("");
@@ -1070,7 +1104,7 @@ function resetDashboard() {
     settingsKey,
     reviewKey,
     backupExportedKey
-  ].forEach(key => localStorage.removeItem(key));
+  ].forEach(key => removeStorage(key));
 
   window.location.reload();
 }
@@ -1084,7 +1118,7 @@ function getSavedTabOrder() {
 }
 
 function saveTabOrder(order) {
-  localStorage.setItem(tabOrderKey, JSON.stringify(order));
+  writeJson(tabOrderKey, order);
 }
 
 function applyTabOrder(order = getSavedTabOrder()) {
@@ -1106,8 +1140,8 @@ function renderTabOrderList() {
     <article class="tab-order-item">
       <strong>${tabLabels[tab]}</strong>
       <div class="tab-order-controls">
-        <button class="small-button secondary-button" type="button" onclick="moveTabOrderItem(${index}, -1)" ${index === 0 ? "disabled" : ""}>Up</button>
-        <button class="small-button secondary-button" type="button" onclick="moveTabOrderItem(${index}, 1)" ${index === order.length - 1 ? "disabled" : ""}>Down</button>
+        <button class="small-button secondary-button" type="button" data-tab-order-index="${index}" data-tab-order-direction="-1" ${index === 0 ? "disabled" : ""}>Up</button>
+        <button class="small-button secondary-button" type="button" data-tab-order-index="${index}" data-tab-order-direction="1" ${index === order.length - 1 ? "disabled" : ""}>Down</button>
       </div>
     </article>
   `).join("");
@@ -1149,7 +1183,7 @@ function resetTabOrder() {
 }
 
 function saveReview() {
-  localStorage.setItem(reviewKey, JSON.stringify(getReviewText()));
+  writeJson(reviewKey, getReviewText());
   renderWeeklyReview();
 }
 
@@ -1247,7 +1281,7 @@ function renderQuarterSelect(select, options, selectedKey) {
   }
 
   select.innerHTML = options.map(option => `
-    <option value="${option}" ${option === selectedKey ? "selected" : ""}>${getQuarterLabel(option)}</option>
+    <option value="${escapeHtml(option)}" ${option === selectedKey ? "selected" : ""}>${escapeHtml(getQuarterLabel(option))}</option>
   `).join("");
 }
 
@@ -1294,7 +1328,7 @@ function getHabitCompletedCount(checks) {
 // Loads today's habit state and archives yesterday if the date changed.
 function loadHabits() {
   const saved = readJson(habitsKey, {});
-  const savedDate = saved.date || localStorage.getItem(lastHabitDateKey);
+  const savedDate = saved.date || readStorage(lastHabitDateKey);
 
   if (savedDate === getTodayString()) {
     return saved;
@@ -1308,7 +1342,7 @@ function loadHabits() {
       completed: getHabitCompletedCount(saved.checks),
       total: getActiveNonNegotiables().length
     };
-    localStorage.setItem(habitHistoryKey, JSON.stringify(savedHistory));
+    writeJson(habitHistoryKey, savedHistory);
   }
 
   return {
@@ -1414,6 +1448,13 @@ function escapeHtml(text) {
     .replaceAll("'", "&#039;");
 }
 
+function toCssClassToken(value, fallback = "item") {
+  return String(value || fallback)
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || fallback;
+}
+
 function highlightElement(element) {
   if (!element) {
     return;
@@ -1435,7 +1476,7 @@ function scrollToElement(element) {
 }
 
 function saveWeekCollapsedPreference() {
-  localStorage.setItem(weekCollapsedKey, JSON.stringify(isWeekCollapsed));
+  writeJson(weekCollapsedKey, isWeekCollapsed);
 }
 
 function shouldCollapseWeekByDefault() {
@@ -1487,7 +1528,7 @@ function renderCurrentWeekVisibility() {
     ${previewGoals.length === 0
       ? '<p class="empty-state">No priority or incomplete missions to preview.</p>'
       : previewGoals.map(goal => `
-        <article class="compact-item clickable-item ${goal.done ? "done" : ""}" onclick="goToGoal(${goal.originalIndex})">
+        <article class="compact-item clickable-item ${goal.done ? "done" : ""}" data-goal-jump-index="${goal.originalIndex}">
           <div class="compact-main">
             <strong>${escapeHtml(goal.text)}</strong>
             <span class="compact-meta">${escapeHtml(goal.day)} - ${escapeHtml(goal.category)}${goal.priority ? " - Priority" : ""}</span>
@@ -1616,10 +1657,10 @@ function renderCustomizationEditors() {
     ? '<p class="empty-state">No non-negotiables yet.</p>'
     : nonNegotiables.map(item => `
       <article class="editor-item">
-        <input id="nonNegotiableTitle-${item.id}" type="text" value="${escapeHtml(item.title)}" aria-label="Rename ${escapeHtml(item.title)}">
+        <input id="nonNegotiableTitle-${escapeHtml(item.id)}" type="text" value="${escapeHtml(item.title)}" aria-label="Rename ${escapeHtml(item.title)}">
         <div class="editor-actions">
-          <button class="small-button secondary-button" type="button" onclick="renameNonNegotiable('${item.id}')">Save</button>
-          <button class="small-button delete-button" type="button" onclick="deleteNonNegotiable('${item.id}')">Delete</button>
+          <button class="small-button secondary-button" type="button" data-non-negotiable-action="rename" data-non-negotiable-id="${escapeHtml(item.id)}">Save</button>
+          <button class="small-button delete-button" type="button" data-non-negotiable-action="delete" data-non-negotiable-id="${escapeHtml(item.id)}">Delete</button>
         </div>
       </article>
     `).join("");
@@ -1628,10 +1669,10 @@ function renderCustomizationEditors() {
     ? '<p class="empty-state">No goal categories yet.</p>'
     : goalCategories.map(category => `
       <article class="editor-item">
-        <input id="goalCategoryName-${category.id}" type="text" value="${escapeHtml(category.name)}" aria-label="Rename ${escapeHtml(category.name)}">
+        <input id="goalCategoryName-${escapeHtml(category.id)}" type="text" value="${escapeHtml(category.name)}" aria-label="Rename ${escapeHtml(category.name)}">
         <div class="editor-actions">
-          <button class="small-button secondary-button" type="button" onclick="renameGoalCategory('${category.id}')">Save</button>
-          <button class="small-button delete-button" type="button" onclick="deleteGoalCategory('${category.id}')">Delete</button>
+          <button class="small-button secondary-button" type="button" data-goal-category-action="rename" data-goal-category-id="${escapeHtml(category.id)}">Save</button>
+          <button class="small-button delete-button" type="button" data-goal-category-action="delete" data-goal-category-id="${escapeHtml(category.id)}">Delete</button>
         </div>
       </article>
     `).join("");
@@ -1835,26 +1876,26 @@ function renderGoals() {
     card.className = `goal-card ${goal.done ? "completed" : ""}`;
     card.dataset.goalIndex = goal.originalIndex;
 
-    const categoryClass = goal.category.toLowerCase();
+    const categoryClass = toCssClassToken(goal.category, "personal");
     const priorityBadge = goal.priority ? '<span class="badge priority-badge">Priority</span>' : "";
 
     card.innerHTML = `
       <div>
         <div class="goal-top">
-          <span class="day-label">${goal.day}</span>
+          <span class="day-label">${escapeHtml(goal.day)}</span>
           <div class="badge-row">
-            <span class="badge ${categoryClass}">${goal.category}</span>
+            <span class="badge ${categoryClass}">${escapeHtml(goal.category)}</span>
             ${priorityBadge}
           </div>
         </div>
         <p class="goal-text">${escapeHtml(goal.text)}</p>
       </div>
       <div class="card-actions">
-        <button class="small-button" type="button" onclick="toggleGoal(${goal.originalIndex})">
+        <button class="small-button" type="button" data-goal-action="toggle" data-goal-index="${goal.originalIndex}">
           ${goal.done ? "Undo" : "Complete"}
         </button>
-        <button class="small-button secondary-button" type="button" onclick="editGoal(${goal.originalIndex})">Edit</button>
-        <button class="small-button delete-button" type="button" onclick="deleteGoal(${goal.originalIndex})">Delete</button>
+        <button class="small-button secondary-button" type="button" data-goal-action="edit" data-goal-index="${goal.originalIndex}">Edit</button>
+        <button class="small-button delete-button" type="button" data-goal-action="delete" data-goal-index="${goal.originalIndex}">Delete</button>
       </div>
     `;
 
@@ -1880,7 +1921,7 @@ function renderHabits() {
     const isDone = isHabitChecked(item);
     label.className = `habit-card ${isDone ? "done" : ""}`;
     label.innerHTML = `
-      <input type="checkbox" ${isDone ? "checked" : ""} onchange="toggleHabit('${item.id}')">
+      <input type="checkbox" ${isDone ? "checked" : ""} data-habit-id="${escapeHtml(item.id)}">
       <span>${escapeHtml(item.title)}</span>
     `;
     habitList.appendChild(label);
@@ -1949,7 +1990,7 @@ function renderBriefing() {
   todayMissionList.innerHTML = todayGoals.length === 0
     ? hasDashboardData()
       ? '<p class="empty-state">No missions scheduled for today.</p>'
-      : `<article class="compact-item clickable-item" onclick="handleAccountabilityClick('mission-form')">
+      : `<article class="compact-item clickable-item" data-accountability-action="mission-form">
           <div class="compact-main">
             <strong>Add your first mission</strong>
             <span class="compact-meta">Choose one target for today or this week.</span>
@@ -1957,7 +1998,7 @@ function renderBriefing() {
           <span>Start</span>
         </article>`
     : todayGoals.map(goal => `
-        <article class="compact-item clickable-item ${goal.done ? "done" : ""}" onclick="goToGoal(${goal.originalIndex})">
+        <article class="compact-item clickable-item ${goal.done ? "done" : ""}" data-goal-jump-index="${goal.originalIndex}">
           <div class="compact-main">
             <strong>${escapeHtml(goal.text)}</strong>
             <span class="compact-meta">${escapeHtml(goal.category)}${goal.priority ? " - Priority" : ""}</span>
@@ -2030,7 +2071,7 @@ function renderAccountability() {
 
   accountabilityList.innerHTML = alerts.length === 0
     ? '<article class="alert-card good">No major issues. Stay locked in.</article>'
-    : alerts.map(alert => `<article class="alert-card clickable-item" onclick="handleAccountabilityClick('${alert.action}')">${escapeHtml(alert.text)}</article>`).join("");
+    : alerts.map(alert => `<article class="alert-card clickable-item" data-accountability-action="${escapeHtml(alert.action)}">${escapeHtml(alert.text)}</article>`).join("");
 }
 
 function getHistoryWeekEndDate(week) {
@@ -2148,7 +2189,7 @@ function renderHistory() {
     .reverse();
 
   if (visibleHistory.length === 0) {
-    historyList.innerHTML = `<p class="empty-state">No completed weeks saved for ${getQuarterLabel(selectedHistoryQuarterKey)} yet.</p>`;
+    historyList.innerHTML = `<p class="empty-state">No completed weeks saved for ${escapeHtml(getQuarterLabel(selectedHistoryQuarterKey))} yet.</p>`;
     showFullHistory = false;
     renderMonthlyScorecard();
     renderChart();
@@ -2286,10 +2327,10 @@ function getSavedMotivationalQuote() {
 }
 
 function saveMotivationalQuoteIndex(index) {
-  localStorage.setItem(motivationalQuoteKey, JSON.stringify({
+  writeJson(motivationalQuoteKey, {
     date: getTodayString(),
     index: index
-  }));
+  });
 }
 
 function showNewDailyQuote() {
@@ -2312,7 +2353,7 @@ function loadMotivationReflection() {
 function saveMotivationReflection() {
   const reflections = readJson(motivationReflectionKey, {});
   reflections[getTodayString()] = motivationReflectionInput.value.trim();
-  localStorage.setItem(motivationReflectionKey, JSON.stringify(reflections));
+  writeJson(motivationReflectionKey, reflections);
 }
 
 function watchMotivationVideo() {
@@ -2335,10 +2376,10 @@ function getSavedBibleVerse() {
 }
 
 function saveBibleVerseIndex(index) {
-  localStorage.setItem(bibleVerseKey, JSON.stringify({
+  writeJson(bibleVerseKey, {
     date: getTodayString(),
     index: index
-  }));
+  });
 }
 
 function renderBibleVerse(index = getSavedBibleVerse()) {
@@ -2450,7 +2491,7 @@ function addOrUpdatePlanningGoal(event, type) {
 }
 
 function getPlanningGoalStatusClass(status) {
-  return String(status || "Not Started").toLowerCase().replace(/\s+/g, "-");
+  return toCssClassToken(status || "Not Started", "not-started");
 }
 
 function renderPlanningGoalCard(goal, type, index) {
@@ -2472,7 +2513,7 @@ function renderPlanningGoalCard(goal, type, index) {
       </div>
       <h3>${escapeHtml(goal.text)}</h3>
       <div class="badge-row">
-        <span class="badge ${(goal.category || "Personal").toLowerCase()}">${escapeHtml(goal.category)}</span>
+        <span class="badge ${toCssClassToken(goal.category || "Personal", "personal")}">${escapeHtml(goal.category)}</span>
         ${completedText}
       </div>
       <div class="planning-progress">
@@ -2486,8 +2527,8 @@ function renderPlanningGoalCard(goal, type, index) {
       </div>
       <div class="planning-notes">${notes}</div>
       <div class="card-actions">
-        <button class="small-button secondary-button" type="button" onclick="editPlanningGoal('${type}', ${index})">Edit</button>
-        <button class="small-button delete-button" type="button" onclick="deletePlanningGoal('${type}', ${index})">Delete</button>
+        <button class="small-button secondary-button" type="button" data-planning-action="edit" data-planning-type="${escapeHtml(type)}" data-planning-index="${index}">Edit</button>
+        <button class="small-button delete-button" type="button" data-planning-action="delete" data-planning-type="${escapeHtml(type)}" data-planning-index="${index}">Delete</button>
       </div>
     </article>
   `;
@@ -2933,7 +2974,7 @@ function renderBudgetPlan(totals) {
   }
 
   budgetPlanMessages.innerHTML = messages.map(message => `
-    <article class="plan-message ${message.status}">${message.text}</article>
+    <article class="plan-message ${toCssClassToken(message.status, "good")}">${escapeHtml(message.text)}</article>
   `).join("");
 }
 
@@ -2946,7 +2987,7 @@ function renderWeeklySpending(weeks) {
   const selectedWeek = weeks[selectedFinanceWeekIndex] || weeks[0];
   weeklySpendingSummary.textContent = selectedWeek.label;
   financeWeekSelect.innerHTML = weeks.map((week, index) => `
-    <option value="${index}" ${index === selectedFinanceWeekIndex ? "selected" : ""}>${week.label}</option>
+    <option value="${index}" ${index === selectedFinanceWeekIndex ? "selected" : ""}>${escapeHtml(week.label)}</option>
   `).join("");
   previousFinanceWeekBtn.disabled = selectedFinanceWeekIndex <= 0;
   nextFinanceWeekBtn.disabled = selectedFinanceWeekIndex >= weeks.length - 1;
@@ -2962,14 +3003,14 @@ function renderWeeklySpending(weeks) {
     ? roundMoney(selectedWeek.remaining / remainingDays)
     : 0;
 
-  weeklySpendingCard.className = `weekly-spending-card ${selectedWeek.status}`;
+  weeklySpendingCard.className = `weekly-spending-card ${toCssClassToken(selectedWeek.status, "under")}`;
   weeklySpendingCard.innerHTML = `
     <div class="weekly-spending-topline">
       <div>
-        <strong>${selectedWeek.label}</strong>
-        <p>${selectedWeek.message}</p>
+        <strong>${escapeHtml(selectedWeek.label)}</strong>
+        <p>${escapeHtml(selectedWeek.message)}</p>
       </div>
-      <span>${selectedWeek.statusLabel}</span>
+      <span>${escapeHtml(selectedWeek.statusLabel)}</span>
     </div>
     <div class="weekly-spending-money">
       <div>
@@ -3030,7 +3071,7 @@ function renderSpendingBreakdown(breakdown, totals) {
   }
 
   spendingInsightMessages.innerHTML = messages.slice(0, 1).map(message => `
-    <article class="plan-message ${message.status}">${message.text}</article>
+    <article class="plan-message ${toCssClassToken(message.status, "good")}">${escapeHtml(message.text)}</article>
   `).join("");
 }
 
@@ -3059,20 +3100,20 @@ function renderFinanceEntryList(monthKey) {
   financeEntryList.innerHTML = visibleEntries.length === 0
     ? '<p class="empty-state">No finance entries for this month yet.</p>'
     : visibleEntries.map(entry => `
-        <article class="compact-item finance-ledger-item ${entry.type.toLowerCase()}">
+        <article class="compact-item finance-ledger-item ${toCssClassToken(entry.type, "spending")}">
           <div class="compact-main">
             <strong>${escapeHtml(entry.note || entry.type)}</strong>
             <span class="compact-meta">
               ${getReadableDate(entry.date)}
-              <span class="finance-type-badge ${entry.type.toLowerCase()}">${escapeHtml(entry.type)}</span>
+              <span class="finance-type-badge ${toCssClassToken(entry.type, "spending")}">${escapeHtml(entry.type)}</span>
               ${entry.type === "Spending" ? `<span class="finance-type-badge neutral">${escapeHtml(normalizeSpendingCategory(entry.category))}</span><span class="finance-type-badge neutral">${escapeHtml(normalizeSpendingTag(entry.needWant))}</span>` : ""}
               ${entry.imported ? "Imported" : ""}
             </span>
           </div>
           <div class="ledger-actions">
             <strong>${formatMoney(entry.amount)}</strong>
-            <button class="small-button secondary-button" type="button" onclick="editFinanceEntry(${entry.originalIndex})">Edit</button>
-            <button class="small-button delete-button" type="button" onclick="deleteFinanceEntry(${entry.originalIndex})">Delete</button>
+            <button class="small-button secondary-button" type="button" data-finance-action="edit" data-finance-index="${entry.originalIndex}">Edit</button>
+            <button class="small-button delete-button" type="button" data-finance-action="delete" data-finance-index="${entry.originalIndex}">Delete</button>
           </div>
         </article>
       `).join("");
@@ -3605,6 +3646,41 @@ function setArchiveAiReviewStatus(message, status = "") {
   statusElement.className = `ai-review-status ${status}`.trim();
 }
 
+function getAiReviewErrorMessage(error, response) {
+  const details = error && error.message ? error.message : "";
+
+  if (response && response.status === 401) {
+    return "AI review is not authorized. Check OPENAI_API_KEY in Netlify, redeploy, or use Copy AI Prompt.";
+  }
+
+  if (response && response.status === 429) {
+    return "AI review is temporarily rate limited. Try again in a minute or use Copy AI Prompt.";
+  }
+
+  if (response && response.status >= 500) {
+    return "AI review service is unavailable right now. Use Copy AI Prompt as a fallback.";
+  }
+
+  if (details) {
+    return `${details} Use Copy AI Prompt as a fallback.`;
+  }
+
+  return "AI review could not be generated. Check your connection or Netlify function logs, then try again.";
+}
+
+function setAiOutputLoading(outputElement, isLoading, message) {
+  if (!outputElement) {
+    return;
+  }
+
+  outputElement.setAttribute("aria-busy", String(isLoading));
+
+  if (isLoading) {
+    outputElement.textContent = message;
+    outputElement.classList.add("empty-state");
+  }
+}
+
 async function copyTextToClipboard(text, successMessage) {
   try {
     await navigator.clipboard.writeText(text);
@@ -3639,12 +3715,15 @@ async function copyAiReview() {
 async function generateAiWeeklyReview() {
   const data = getWeeklyReviewData();
   const prompt = buildAiWeeklyPrompt(data);
+  let response = null;
 
   generateAiReviewBtn.disabled = true;
-  setAiReviewStatus("Generating weekly review...", "");
+  generateAiReviewBtn.textContent = "Generating...";
+  setAiOutputLoading(aiReviewOutput, true, "Generating AI weekly review...");
+  setAiReviewStatus("Generating weekly review. This can take a few seconds.", "");
 
   try {
-    const response = await fetch("/.netlify/functions/ai-weekly-review", {
+    response = await fetch("/.netlify/functions/ai-weekly-review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ weeklyData: data, prompt })
@@ -3665,9 +3744,16 @@ async function generateAiWeeklyReview() {
     renderWeeklyReview();
     setAiReviewStatus("AI weekly review generated and saved for this week.", "success");
   } catch (error) {
-    setAiReviewStatus(`${error.message} Copy AI Prompt is ready as a fallback.`, "error");
+    const savedReview = aiWeeklyReviews[getCurrentWeekKey()];
+    aiReviewOutput.textContent = savedReview && savedReview.text
+      ? savedReview.text
+      : "AI review was not generated. Copy AI Prompt is ready as a manual fallback.";
+    aiReviewOutput.classList.toggle("empty-state", !(savedReview && savedReview.text));
+    setAiReviewStatus(getAiReviewErrorMessage(error, response), "error");
   } finally {
     generateAiReviewBtn.disabled = false;
+    generateAiReviewBtn.textContent = "AI Review This Week";
+    aiReviewOutput.setAttribute("aria-busy", "false");
   }
 }
 
@@ -3679,17 +3765,21 @@ async function generateArchiveAiWeeklyReview(index) {
   }
 
   const button = document.getElementById("generateArchiveAiReviewBtn");
+  const output = document.getElementById("archiveAiReviewOutput");
   const data = getArchiveWeeklyReviewData(index);
   const prompt = buildAiWeeklyPrompt(data);
+  let response = null;
 
   if (button) {
     button.disabled = true;
+    button.textContent = "Generating...";
   }
 
-  setArchiveAiReviewStatus("Generating archived weekly review...", "");
+  setAiOutputLoading(output, true, "Generating archived AI weekly review...");
+  setArchiveAiReviewStatus("Generating archived weekly review. This can take a few seconds.", "");
 
   try {
-    const response = await fetch("/.netlify/functions/ai-weekly-review", {
+    response = await fetch("/.netlify/functions/ai-weekly-review", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ weeklyData: data, prompt })
@@ -3711,10 +3801,26 @@ async function generateArchiveAiWeeklyReview(index) {
     openHistoryWeek(index);
     setArchiveAiReviewStatus("AI review generated and saved for this archived week.", "success");
   } catch (error) {
-    setArchiveAiReviewStatus(`${error.message} Copy AI Prompt is ready as a fallback.`, "error");
+    const savedReview = aiWeeklyReviews[getArchiveAiReviewKey(week, index)];
+    const currentOutput = document.getElementById("archiveAiReviewOutput");
+
+    if (currentOutput) {
+      currentOutput.textContent = savedReview && savedReview.text
+        ? savedReview.text
+        : "AI review was not generated. Copy AI Prompt is ready as a manual fallback.";
+      currentOutput.classList.toggle("empty-state", !(savedReview && savedReview.text));
+      currentOutput.setAttribute("aria-busy", "false");
+    }
+
+    setArchiveAiReviewStatus(getAiReviewErrorMessage(error, response), "error");
   } finally {
     if (button) {
       button.disabled = false;
+      button.textContent = "AI Review This Week";
+    }
+
+    if (output) {
+      output.setAttribute("aria-busy", "false");
     }
   }
 }
@@ -4436,13 +4542,13 @@ function renderArchiveGoals(week) {
       ? "Goal details were not saved for this imported week."
       : "No goals were saved for this week.";
 
-    return `<p class="empty-state">${message}</p>`;
+    return `<p class="empty-state">${escapeHtml(message)}</p>`;
   }
 
   return `
     <div class="archive-goal-list">
       ${week.goals.map(goal => {
-        const categoryClass = (goal.category || "Personal").toLowerCase();
+        const categoryClass = toCssClassToken(goal.category || "Personal", "personal");
         const priorityBadge = goal.priority ? '<span class="badge priority-badge">Priority</span>' : "";
         const statusClass = goal.done ? "done" : "missed";
         const statusText = goal.done ? "&#10003;" : "X";
@@ -4499,9 +4605,9 @@ function renderArchiveAiReview(week, index) {
         </div>
       </div>
       <div class="section-actions review-actions">
-        <button id="generateArchiveAiReviewBtn" class="primary-button action-button" type="button" onclick="generateArchiveAiWeeklyReview(${index})">AI Review This Week</button>
-        <button class="secondary-button action-button" type="button" onclick="copyArchiveAiPrompt(${index})">Copy AI Prompt</button>
-        <button class="secondary-button action-button" type="button" onclick="copyArchiveAiReview(${index})">Copy Review</button>
+        <button id="generateArchiveAiReviewBtn" class="primary-button action-button" type="button" data-archive-ai-action="generate" data-history-index="${index}">AI Review This Week</button>
+        <button class="secondary-button action-button" type="button" data-archive-ai-action="copy-prompt" data-history-index="${index}">Copy AI Prompt</button>
+        <button class="secondary-button action-button" type="button" data-archive-ai-action="copy-review" data-history-index="${index}">Copy Review</button>
       </div>
       <p id="archiveAiReviewStatus" class="ai-review-status"></p>
       <article id="archiveAiReviewOutput" class="ai-review-output ${savedReview && savedReview.text ? "" : "empty-state"}">${escapeHtml(reviewText)}</article>
@@ -4608,21 +4714,21 @@ function archiveCurrentWeek(weekRange = getCurrentWeekRange(), options = {}) {
 // Archives the full current week before clearing missions for a new week.
 function startNewWeek() {
   archiveCurrentWeek(getCurrentWeekRange(), { automatic: false });
-  localStorage.setItem(activeWeekStartKey, getCurrentWeekKey());
+  writeStorage(activeWeekStartKey, getCurrentWeekKey());
 }
 
 function ensureActiveWeekStart() {
   const currentWeekKey = getCurrentWeekKey();
-  const activeWeekKey = localStorage.getItem(activeWeekStartKey);
+  const activeWeekKey = readStorage(activeWeekStartKey);
 
   if (!activeWeekKey) {
-    localStorage.setItem(activeWeekStartKey, currentWeekKey);
+    writeStorage(activeWeekStartKey, currentWeekKey);
     return;
   }
 
   if (activeWeekKey !== currentWeekKey) {
     archiveCurrentWeek(getWeekRangeFromStartKey(activeWeekKey), { automatic: true });
-    localStorage.setItem(activeWeekStartKey, currentWeekKey);
+    writeStorage(activeWeekStartKey, currentWeekKey);
   }
 }
 
@@ -4723,7 +4829,7 @@ function exportBackup() {
     motivationReflections: readJson(motivationReflectionKey, {}),
     dailyBibleVerse: readJson(bibleVerseKey, {}),
     tabOrder: getSavedTabOrder(),
-    activeWeekStart: localStorage.getItem(activeWeekStartKey) || getCurrentWeekKey(),
+    activeWeekStart: readStorage(activeWeekStartKey, getCurrentWeekKey()),
     settings: readJson(settingsKey, userSettings),
     review: getReviewText(),
     aiWeeklyReviews: readJson(aiWeeklyReviewsKey, aiWeeklyReviews)
@@ -4739,7 +4845,7 @@ function exportBackup() {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  localStorage.setItem(backupExportedKey, JSON.stringify(true));
+  writeJson(backupExportedKey, true);
   renderWelcomeState();
 
   return link.download;
@@ -4818,10 +4924,10 @@ function importBackup(event) {
     savingsGoalPercent = getMoney(backup.savingsGoalPercent || backup.savingsGoal || savingsGoalPercent);
     userSettings = backup.settings || {};
     saveTabOrder(Array.isArray(backup.tabOrder) ? backup.tabOrder : getSavedTabOrder());
-    localStorage.setItem(activeWeekStartKey, backup.activeWeekStart || getCurrentWeekKey());
-    localStorage.setItem(motivationalQuoteKey, JSON.stringify(backup.dailyMotivationalQuote || {}));
-    localStorage.setItem(motivationReflectionKey, JSON.stringify(backup.motivationReflections || {}));
-    localStorage.setItem(bibleVerseKey, JSON.stringify(backup.dailyBibleVerse || {}));
+    writeStorage(activeWeekStartKey, backup.activeWeekStart || getCurrentWeekKey());
+    writeJson(motivationalQuoteKey, backup.dailyMotivationalQuote || {});
+    writeJson(motivationReflectionKey, backup.motivationReflections || {});
+    writeJson(bibleVerseKey, backup.dailyBibleVerse || {});
     if (backup.habits && backup.habits.date === getTodayString()) {
       habitState = backup.habits;
     } else {
@@ -4831,7 +4937,7 @@ function importBackup(event) {
       };
     }
 
-    localStorage.setItem(reviewKey, JSON.stringify(backup.review || {}));
+    writeJson(reviewKey, backup.review || {});
     saveGoals();
     saveHistory();
     saveNonNegotiables();
@@ -4839,7 +4945,7 @@ function importBackup(event) {
     saveAiWeeklyReviews();
     saveHabits();
     saveHabitHistory();
-    localStorage.setItem(journalKey, JSON.stringify(journalEntries));
+    writeJson(journalKey, journalEntries);
     savePlanningGoals();
     saveFinance();
     saveTransactions();
@@ -4866,6 +4972,143 @@ function importBackup(event) {
 
   reader.readAsText(file);
 }
+
+function getNumericDatasetValue(element, name) {
+  const value = Number(element.dataset[name]);
+  return Number.isInteger(value) ? value : null;
+}
+
+function bindDelegatedClick(container, selector, handler) {
+  if (!container) {
+    return;
+  }
+
+  container.addEventListener("click", event => {
+    const target = event.target.closest(selector);
+
+    if (target && container.contains(target)) {
+      handler(target, event);
+    }
+  });
+}
+
+bindDelegatedClick(tabOrderList, "[data-tab-order-index]", target => {
+  const index = getNumericDatasetValue(target, "tabOrderIndex");
+  const direction = getNumericDatasetValue(target, "tabOrderDirection");
+
+  if (index !== null && direction !== null) {
+    moveTabOrderItem(index, direction);
+  }
+});
+
+bindDelegatedClick(goalList, "[data-goal-action]", target => {
+  const index = getNumericDatasetValue(target, "goalIndex");
+
+  if (index === null) {
+    return;
+  }
+
+  if (target.dataset.goalAction === "toggle") {
+    toggleGoal(index);
+  } else if (target.dataset.goalAction === "edit") {
+    editGoal(index);
+  } else if (target.dataset.goalAction === "delete") {
+    deleteGoal(index);
+  }
+});
+
+[collapsedWeekPreview, todayMissionList].forEach(container => {
+  bindDelegatedClick(container, "[data-goal-jump-index]", target => {
+    const index = getNumericDatasetValue(target, "goalJumpIndex");
+
+    if (index !== null) {
+      goToGoal(index);
+    }
+  });
+});
+
+habitList.addEventListener("change", event => {
+  const target = event.target;
+
+  if (target.matches("[data-habit-id]")) {
+    toggleHabit(target.dataset.habitId);
+  }
+});
+
+bindDelegatedClick(accountabilityList, "[data-accountability-action]", target => {
+  handleAccountabilityClick(target.dataset.accountabilityAction);
+});
+
+bindDelegatedClick(todayMissionList, "[data-accountability-action]", target => {
+  handleAccountabilityClick(target.dataset.accountabilityAction);
+});
+
+bindDelegatedClick(nonNegotiableEditorList, "[data-non-negotiable-action]", target => {
+  const id = target.dataset.nonNegotiableId;
+
+  if (target.dataset.nonNegotiableAction === "rename") {
+    renameNonNegotiable(id);
+  } else if (target.dataset.nonNegotiableAction === "delete") {
+    deleteNonNegotiable(id);
+  }
+});
+
+bindDelegatedClick(goalCategoryEditorList, "[data-goal-category-action]", target => {
+  const id = target.dataset.goalCategoryId;
+
+  if (target.dataset.goalCategoryAction === "rename") {
+    renameGoalCategory(id);
+  } else if (target.dataset.goalCategoryAction === "delete") {
+    deleteGoalCategory(id);
+  }
+});
+
+[monthlyGoalList, yearlyGoalList, longTermGoalList].forEach(container => {
+  bindDelegatedClick(container, "[data-planning-action]", target => {
+    const type = target.dataset.planningType;
+    const index = getNumericDatasetValue(target, "planningIndex");
+
+    if (!type || index === null) {
+      return;
+    }
+
+    if (target.dataset.planningAction === "edit") {
+      editPlanningGoal(type, index);
+    } else if (target.dataset.planningAction === "delete") {
+      deletePlanningGoal(type, index);
+    }
+  });
+});
+
+bindDelegatedClick(financeEntryList, "[data-finance-action]", target => {
+  const index = getNumericDatasetValue(target, "financeIndex");
+
+  if (index === null) {
+    return;
+  }
+
+  if (target.dataset.financeAction === "edit") {
+    editFinanceEntry(index);
+  } else if (target.dataset.financeAction === "delete") {
+    deleteFinanceEntry(index);
+  }
+});
+
+bindDelegatedClick(historyModalBody, "[data-archive-ai-action]", target => {
+  const index = getNumericDatasetValue(target, "historyIndex");
+
+  if (index === null) {
+    return;
+  }
+
+  if (target.dataset.archiveAiAction === "generate") {
+    generateArchiveAiWeeklyReview(index);
+  } else if (target.dataset.archiveAiAction === "copy-prompt") {
+    copyArchiveAiPrompt(index);
+  } else if (target.dataset.archiveAiAction === "copy-review") {
+    copyArchiveAiReview(index);
+  }
+});
 
 goalForm.addEventListener("submit", addOrUpdateGoal);
 nonNegotiableForm.addEventListener("submit", addNonNegotiable);

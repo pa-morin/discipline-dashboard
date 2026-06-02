@@ -115,6 +115,34 @@ test("first run feels alive instead of blank", async ({ page }) => {
   expect(consoleErrors).toEqual([]);
 });
 
+test("localStorage failures do not crash the dashboard shell", async ({ page }) => {
+  const consoleErrors = [];
+
+  page.on("console", message => {
+    if (message.type() === "error") {
+      consoleErrors.push(message.text());
+    }
+  });
+
+  page.on("pageerror", error => {
+    consoleErrors.push(error.message);
+  });
+
+  await page.addInitScript(() => {
+    ["getItem", "setItem", "removeItem"].forEach(method => {
+      Storage.prototype[method] = () => {
+        throw new Error("localStorage unavailable");
+      };
+    });
+  });
+
+  await page.goto(appUrl);
+
+  await expect(page.locator("#welcomePanel")).toBeVisible();
+  await expect(page.locator("#todayMissionList")).toContainText("Add your first mission");
+  expect(consoleErrors).toEqual([]);
+});
+
 test("first launch checklist stays visible until every item is complete", async ({ page }) => {
   await openFreshApp(page);
   await completeSetup(page);
