@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+dist/
+build/
+coverage/
+test-results/
+playwright-report/
+.netlify-deploy/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+
+# Hosting / tool state
+.netlify/
+.vercel/
+.vscode/
+
+# OS / cache files
+.DS_Store
+.matplotlib-cache/
+__pycache__/
+**/__pycache__/
+
+# Private keys and local certificates
+*.pem
+*.key
+*.p12
+*.pfx

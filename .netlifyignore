@@ -1,0 +1,15 @@
+node_modules/
+test-results/
+playwright-report/
+.matplotlib-cache/
+__pycache__/
+**/__pycache__/
+.vscode/
+qa/
+scripts/
+data/
+archive/
+package-lock.json
+package.json
+playwright.config.js
+

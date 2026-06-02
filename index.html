@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discipline Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="dashboard">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Weekly command center</p>
+        <h1 id="dashboardTitle">Discipline Dashboard</h1>
+      </div>
+      <div class="header-actions">
+        <button id="settingsBtn" class="secondary-button action-button" type="button">Settings</button>
+        <details class="backup-dropdown">
+          <summary class="secondary-button action-button">Backup</summary>
+          <div class="backup-menu">
+            <button id="exportBackupBtn" class="backup-menu-item" type="button">Export Backup</button>
+            <button id="importBackupBtn" class="backup-menu-item" type="button">Import Backup</button>
+            <button id="importOldDataBtn" class="backup-menu-item" type="button">Import Old Data</button>
+            <button id="emailBackupBtn" class="backup-menu-item" type="button">Email Backup Helper</button>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <input id="oldDataInput" class="hidden-file" type="file" accept=".txt,text/plain">
+    <input id="backupInput" class="hidden-file" type="file" accept=".json,application/json">
+    <input id="financeImportInput" class="hidden-file" type="file" accept=".csv,.txt,text/csv,text/plain">
+    <input id="transactionImportInput" class="hidden-file" type="file" accept=".csv,.txt,text/csv,text/plain">
+
+    <nav class="tab-nav" aria-label="Dashboard sections">
+      <button class="tab-button active" type="button" data-tab="command">Command Center</button>
+      <button class="tab-button" type="button" data-tab="goals">Goals</button>
+      <button class="tab-button" type="button" data-tab="motivation">Motivation</button>
+      <button class="tab-button" type="button" data-tab="finance">Finance</button>
+      <button class="tab-button" type="button" data-tab="history">History</button>
+      <button class="tab-button" type="button" data-tab="journal">Journal</button>
+    </nav>
+
+    <div id="commandTab" class="tab-panel active">
+    <section id="welcomePanel" class="panel welcome-panel hidden">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">First launch</p>
+          <h2>Build Your Operating System</h2>
+        </div>
+      </div>
+      <p class="welcome-copy">
+        Start with one clear mission, lock in the daily basics, then review the week. The dashboard gets sharper as you add real data.
+      </p>
+      <div id="setupChecklist" class="setup-checklist"></div>
+    </section>
+
+    <section class="panel bible-verse-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Daily Bible Verse</p>
+          <h2 id="bibleVerseReference">Loading verse...</h2>
+        </div>
+        <button id="newBibleVerseBtn" class="secondary-button action-button" type="button">New Verse</button>
+      </div>
+      <p id="bibleVerseText" class="bible-verse-text">Loading verse...</p>
+      <span id="bibleVerseTheme" class="verse-theme">Faith</span>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Start Here</p>
+          <h2>Today&apos;s Briefing</h2>
+          <p id="briefingMessage">Start the day. Win the first task.</p>
+        </div>
+        <button id="scrollWeekBtn" class="primary-button action-button" type="button">Plan Weekly Goals</button>
+      </div>
+      <div class="briefing-grid">
+        <div>
+          <h3>Today&apos;s Missions</h3>
+          <div id="todayMissionList" class="compact-list"></div>
+        </div>
+        <div>
+          <h3>Today&apos;s Non-Negotiables</h3>
+          <div id="todayHabitList" class="compact-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Accountability</h2>
+        <p>Warnings based on current progress</p>
+      </div>
+      <div id="accountabilityList" class="alert-grid"></div>
+    </section>
+
+    <section id="nonNegotiablesSection" class="panel">
+      <div class="section-heading">
+        <h2>Non-Negotiables</h2>
+        <p id="habitSummary">Daily habits reset automatically.</p>
+      </div>
+      <div id="habitList" class="habit-grid"></div>
+    </section>
+
+    <section class="stats-grid" aria-label="Weekly stats">
+      <article class="stat-card">
+        <span>Weekly Success</span>
+        <strong id="successPercent">0%</strong>
+      </article>
+      <article class="stat-card">
+        <span>Completed</span>
+        <strong id="completedCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Total Goals</span>
+        <strong id="totalCount">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Current Streak</span>
+        <strong id="streakCount">0 weeks</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Progress Graph</h2>
+          <p>Weekly completion percentages</p>
+        </div>
+        <div class="section-actions">
+          <select id="goalsQuarterSelect" aria-label="Select goals quarter"></select>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="progressChart"></canvas>
+      </div>
+    </section>
+    </div>
+
+    <div id="goalsTab" class="tab-panel">
+    <section id="missionFormSection" class="panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Weekly Planning</p>
+          <h2>Add Weekly Mission</h2>
+        </div>
+      </div>
+
+      <form id="goalForm" class="goal-form">
+        <input id="goalInput" type="text" placeholder="What mission needs your focus?" required>
+
+        <select id="categoryInput" aria-label="Category"></select>
+
+        <select id="dayInput" aria-label="Day">
+          <option value="Monday">Monday</option>
+          <option value="Tuesday">Tuesday</option>
+          <option value="Wednesday">Wednesday</option>
+          <option value="Thursday">Thursday</option>
+          <option value="Friday">Friday</option>
+          <option value="Saturday">Saturday</option>
+          <option value="Sunday">Sunday</option>
+        </select>
+
+        <label class="priority-toggle">
+          <input id="priorityInput" type="checkbox">
+          <span>Priority</span>
+        </label>
+
+        <button id="submitBtn" class="primary-button" type="submit">Add Goal</button>
+      </form>
+    </section>
+
+    <section id="currentWeekSection" class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Current Week</h2>
+          <p id="currentWeekLabel">Week of...</p>
+          <p id="weekSummary">No missions yet.</p>
+        </div>
+        <button id="toggleWeekBtn" class="secondary-button action-button" type="button">Collapse</button>
+      </div>
+      <div id="collapsedWeekPreview" class="compact-list hidden"></div>
+      <div id="goalList" class="goal-grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Weekly Review</h2>
+        <p>Save this reflection when you start a new week.</p>
+      </div>
+      <div class="review-grid">
+        <label>
+          <span>What went well?</span>
+          <textarea id="wentWellInput" rows="4"></textarea>
+        </label>
+        <label>
+          <span>What failed?</span>
+          <textarea id="failedInput" rows="4"></textarea>
+        </label>
+        <label>
+          <span>What improves next week?</span>
+          <textarea id="improveInput" rows="4"></textarea>
+        </label>
+      </div>
+      <div id="weeklyReviewSummary" class="weekly-review-summary goal-review-summary"></div>
+      <div class="section-heading ai-review-heading">
+        <div>
+          <h3>AI Weekly Review</h3>
+          <p>AI review sends this week's selected dashboard data to the AI provider for analysis. Do not include anything in your journal that you would not want analyzed.</p>
+        </div>
+      </div>
+      <div class="section-actions review-actions">
+        <button id="generateAiReviewBtn" class="primary-button action-button" type="button">Generate AI Weekly Review</button>
+        <button id="copyAiPromptBtn" class="secondary-button action-button" type="button">Copy AI Prompt</button>
+        <button id="copyAiReviewBtn" class="secondary-button action-button" type="button">Copy Review</button>
+      </div>
+      <p id="aiReviewStatus" class="ai-review-status"></p>
+      <article id="aiReviewOutput" class="ai-review-output empty-state">No AI review generated for this week yet.</article>
+      <button id="newWeekBtn" class="danger-button review-button" type="button">Start New Week</button>
+    </section>
+
+    <section class="stats-grid" aria-label="Goal dashboard">
+      <article class="stat-card">
+        <span>Monthly Goals Completed</span>
+        <strong id="monthlyGoalsCompleted">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Yearly Goals Completed</span>
+        <strong id="yearlyGoalsCompleted">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Long-Term In Progress</span>
+        <strong id="longTermGoalsInProgress">0</strong>
+      </article>
+      <article class="stat-card">
+        <span>Overall Progress</span>
+        <strong id="overallGoalProgress">0%</strong>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Monthly Goals</h2>
+        <p>Goals for a specific month.</p>
+      </div>
+      <form id="monthlyGoalForm" class="planning-goal-form">
+        <input id="monthlyGoalInput" type="text" placeholder="Monthly goal" required>
+        <input id="monthlyTargetInput" type="month" aria-label="Target month">
+        <select id="monthlyCategoryInput" aria-label="Monthly category"></select>
+        <select id="monthlyStatusInput" aria-label="Monthly status">
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+        <label class="priority-toggle">
+          <input id="monthlyCompletedInput" type="checkbox">
+          <span>Completed</span>
+        </label>
+        <input id="monthlyProgressInput" type="number" min="0" max="100" step="1" placeholder="Progress %">
+        <input id="monthlyNotesInput" type="text" placeholder="Notes">
+        <button id="monthlyGoalSubmitBtn" class="primary-button" type="submit">Add Goal</button>
+      </form>
+      <div id="monthlyGoalList" class="planning-goal-grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Yearly Goals</h2>
+        <p>Big goals for a target year.</p>
+      </div>
+      <form id="yearlyGoalForm" class="planning-goal-form">
+        <input id="yearlyGoalInput" type="text" placeholder="Yearly goal" required>
+        <input id="yearlyTargetInput" type="number" min="2020" max="2100" step="1" placeholder="Target year">
+        <select id="yearlyCategoryInput" aria-label="Yearly category"></select>
+        <select id="yearlyStatusInput" aria-label="Yearly status">
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+        <input id="yearlyProgressInput" type="number" min="0" max="100" step="1" placeholder="Progress %">
+        <input id="yearlyNotesInput" type="text" placeholder="Notes">
+        <button id="yearlyGoalSubmitBtn" class="primary-button" type="submit">Add Goal</button>
+      </form>
+      <div id="yearlyGoalList" class="planning-goal-grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Long-Term Goals</h2>
+        <p>Goals for the next chapter of your life.</p>
+      </div>
+      <form id="longTermGoalForm" class="planning-goal-form long-term-goal-form">
+        <input id="longTermGoalInput" type="text" placeholder="Long-term goal" required>
+        <select id="longTermTimeframeInput" aria-label="Target timeframe">
+          <option value="2 years">2 years</option>
+          <option value="5 years">5 years</option>
+          <option value="10 years">10 years</option>
+          <option value="Lifetime">Lifetime</option>
+        </select>
+        <select id="longTermCategoryInput" aria-label="Long-term category"></select>
+        <select id="longTermStatusInput" aria-label="Long-term status">
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+        <input id="longTermProgressInput" type="number" min="0" max="100" step="1" placeholder="Progress %">
+        <input id="longTermWhyInput" type="text" placeholder="Why this matters">
+        <input id="longTermNextActionInput" type="text" placeholder="Next action">
+        <button id="longTermGoalSubmitBtn" class="primary-button" type="submit">Add Goal</button>
+      </form>
+      <div id="longTermGoalList" class="planning-goal-grid"></div>
+    </section>
+    </div>
+
+    <div id="journalTab" class="tab-panel">
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Journal</h2>
+        <p id="journalDateLabel">Today</p>
+      </div>
+      <label class="journal-rant-field">
+        <span>Rant Space</span>
+        <textarea id="journalRantInput" rows="10" placeholder="What's on your mind?"></textarea>
+      </label>
+      <div class="review-grid">
+        <label>
+          <span>Today I won because...</span>
+          <textarea id="journalWonInput" rows="4"></textarea>
+        </label>
+        <label>
+          <span>Today I failed because...</span>
+          <textarea id="journalFailedInput" rows="4"></textarea>
+        </label>
+        <label>
+          <span>Tomorrow I will...</span>
+          <textarea id="journalAttackInput" rows="4"></textarea>
+        </label>
+      </div>
+      <div class="journal-history">
+        <label>
+          <span>View Past Journal Entries</span>
+          <select id="journalHistorySelect">
+            <option value="">Select a past entry</option>
+          </select>
+        </label>
+        <div id="pastJournalEntry" class="past-journal empty-state">No past entry selected.</div>
+      </div>
+    </section>
+    </div>
+
+    <div id="historyTab" class="tab-panel">
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Monthly Scorecard</h2>
+        <p id="monthlyName">Current month</p>
+      </div>
+      <div id="monthlyScorecard" class="scorecard-grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Quarter History</h2>
+          <p>Previous weekly results</p>
+        </div>
+        <div class="section-actions">
+          <select id="historyQuarterSelect" aria-label="Select history quarter"></select>
+        </div>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+    </div>
+
+    <div id="motivationTab" class="tab-panel">
+    <section class="panel quote-panel">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Daily Motivation</p>
+          <h2>Quote of the Day</h2>
+        </div>
+        <button id="newQuoteBtn" class="secondary-button action-button" type="button">New Quote</button>
+      </div>
+      <p id="dailyQuote" class="daily-quote">Loading quote...</p>
+      <p id="dailyQuoteAuthor" class="quote-author">Loading author...</p>
+      <span id="dailyQuoteTheme" class="verse-theme">discipline</span>
+    </section>
+
+    <section class="panel motivation-video-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Daily Video</p>
+          <h2>Motivation Video</h2>
+        </div>
+        <button id="watchMotivationVideoBtn" class="primary-button action-button" type="button">Watch Video</button>
+      </div>
+      <p class="helper-text">Open a short motivational video when you need a reset before getting back to work.</p>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <h2>Motivational Reflection</h2>
+        <p>One thought to carry into action today.</p>
+      </div>
+      <textarea id="motivationReflectionInput" rows="5" placeholder="What mindset do I need today?"></textarea>
+    </section>
+    </div>
+
+    <div id="financeTab" class="tab-panel">
+      <section class="panel finance-hero">
+        <div class="section-heading">
+          <div>
+            <h2>Finance</h2>
+            <p>Track what came in, what went out, and what got saved.</p>
+          </div>
+          <div class="section-actions">
+            <button id="importTransactionsBtn" class="primary-button action-button" type="button">Import Transactions CSV</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel finance-entry-panel">
+        <div class="section-heading">
+          <h2>Simple Manual Entry</h2>
+          <p>Add money made, spent, or saved.</p>
+        </div>
+        <form id="financeForm" class="finance-form simple-finance-form">
+          <input id="financeDateInput" type="date" aria-label="Finance date">
+          <select id="financeTypeInput" aria-label="Finance entry type">
+            <option value="Income">Income</option>
+            <option value="Spending">Spending</option>
+            <option value="Savings">Savings</option>
+            <option value="Transfer">Transfer</option>
+          </select>
+          <select id="financeCategoryInput" aria-label="Spending category">
+            <option value="Food">Food</option>
+            <option value="Gas">Gas</option>
+            <option value="Subscriptions">Subscriptions</option>
+            <option value="Car">Car</option>
+            <option value="School">School</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Other">Other</option>
+          </select>
+          <select id="financeNeedWantInput" aria-label="Need or Want">
+            <option value="Need">Need</option>
+            <option value="Want">Want</option>
+          </select>
+          <input id="financeAmountInput" type="number" step="0.01" placeholder="Amount">
+          <input id="financeNoteInput" type="text" placeholder="Note or description">
+          <button id="financeSubmitBtn" class="primary-button" type="submit">Save Entry</button>
+        </form>
+      </section>
+
+      <section class="panel main-money-status-panel">
+        <div class="money-status-card">
+          <div>
+            <span id="mainMoneyStatusLabel">Spending Budget Left</span>
+            <strong id="mainMoneyStatusValue">$0</strong>
+            <p id="mainMoneyStatusMessage">You are within your monthly plan</p>
+          </div>
+          <div class="money-status-support">
+            <article>
+              <span>Income</span>
+              <strong id="statusIncomeValue">$0</strong>
+            </article>
+            <article>
+              <span>Spent</span>
+              <strong id="statusSpentValue">$0</strong>
+            </article>
+            <article>
+              <span>Saved</span>
+              <strong id="statusSavedValue">$0</strong>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel weekly-focus-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Weekly Spending</h2>
+            <p id="weeklySpendingSummary">One week at a time.</p>
+          </div>
+          <div class="weekly-spending-controls">
+            <button id="previousFinanceWeekBtn" class="secondary-button action-button" type="button" aria-label="Previous week">&lt;</button>
+            <select id="financeWeekSelect" aria-label="Select finance week"></select>
+            <button id="nextFinanceWeekBtn" class="secondary-button action-button" type="button" aria-label="Next week">&gt;</button>
+          </div>
+        </div>
+        <div id="weeklySpendingCard" class="weekly-spending-card"></div>
+      </section>
+
+      <section class="panel monthly-snapshot-panel">
+        <div class="section-heading">
+          <div>
+            <h2>Monthly Money Snapshot</h2>
+            <p id="transactionSummaryText">CSV imports add spending entries only.</p>
+          </div>
+          <label class="month-picker">
+            <span>Month</span>
+            <input id="financeMonthInput" type="month">
+          </label>
+        </div>
+        <div class="finance-snapshot-grid simple-money-grid">
+          <article class="stat-card money-card highlight-card">
+            <span>Made This Month</span>
+            <strong id="madeThisMonthValue">$0</strong>
+          </article>
+          <article class="stat-card money-card">
+            <span>Spent This Month</span>
+            <strong id="spentThisMonthValue">$0</strong>
+          </article>
+          <article class="stat-card money-card">
+            <span>Put Into Savings</span>
+            <strong id="savedThisMonthValue">$0</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel monthly-summary-panel">
+        <div class="section-heading">
+          <h2>Monthly Summary</h2>
+          <p>Remaining Money: Income - Spending - Savings.</p>
+        </div>
+        <p class="helper-text">Savings is counted separately because it is money you chose to set aside.</p>
+        <div class="budget-status-grid">
+          <article class="stat-card">
+            <span>Total Income</span>
+            <strong id="summaryIncomeValue">$0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Total Spending</span>
+            <strong id="summarySpendingValue">$0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Total Savings</span>
+            <strong id="summarySavingsValue">$0</strong>
+          </article>
+          <article class="stat-card highlight-card">
+            <span>Remaining Money</span>
+            <strong id="remainingMoneyValue">$0</strong>
+          </article>
+        </div>
+        <div class="chart-wrap simple-chart-wrap">
+          <canvas id="financeSimpleChart"></canvas>
+        </div>
+      </section>
+
+      <details class="panel finance-collapsible" id="budgetPlanSection">
+        <summary>
+          <span>Budget Plan</span>
+          <small>Set your savings goal</small>
+        </summary>
+        <form id="savingsGoalForm" class="budget-plan-form">
+          <label>
+            <span>Savings Goal %</span>
+            <input id="savingsGoalInput" type="number" min="0" max="100" step="1" placeholder="20">
+          </label>
+          <button class="primary-button" type="submit">Save Goal</button>
+        </form>
+        <div class="budget-status-grid">
+          <article class="stat-card">
+            <span>Savings Goal %</span>
+            <strong id="savingsGoalValue">0%</strong>
+          </article>
+          <article class="stat-card">
+            <span>Target Savings</span>
+            <strong id="targetSavingsValue">$0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Actual Savings</span>
+            <strong id="actualSavingsValue">$0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Spending Budget</span>
+            <strong id="spendingBudgetValue">$0</strong>
+          </article>
+          <article class="stat-card highlight-card">
+            <span>Remaining Money</span>
+            <strong id="planRemainingValue">$0</strong>
+          </article>
+        </div>
+        <div id="budgetPlanMessages" class="plan-message-list"></div>
+      </details>
+
+      <details class="panel finance-collapsible" id="spendingBreakdownSection">
+        <summary>
+          <span>Spending Breakdown</span>
+          <small>Needs, Wants, and top category</small>
+        </summary>
+        <div class="budget-status-grid spending-breakdown-stats">
+          <article class="stat-card">
+            <span>Needs Spending</span>
+            <strong id="needsSpendingValue">$0</strong>
+          </article>
+          <article class="stat-card">
+            <span>Wants Spending</span>
+            <strong id="wantsSpendingValue">$0</strong>
+          </article>
+          <article class="stat-card highlight-card">
+            <span>Wants %</span>
+            <strong id="wantsPercentValue">0%</strong>
+          </article>
+        </div>
+        <div class="finance-breakdown-grid">
+          <div id="spendingCategoryList" class="category-card-grid"></div>
+          <div class="chart-wrap simple-chart-wrap">
+            <canvas id="spendingCategoryChart"></canvas>
+          </div>
+        </div>
+        <div id="spendingInsightMessages" class="plan-message-list"></div>
+      </details>
+
+      <details class="panel finance-collapsible" id="transactionHistorySection">
+        <summary>
+          <span>Transaction History</span>
+          <small>Recent entries, edit, and delete</small>
+        </summary>
+        <div class="section-heading finance-history-heading">
+          <div class="section-actions">
+            <select id="financeFilterInput" aria-label="Filter finance entries">
+              <option value="All">All</option>
+              <option value="Income">Income</option>
+              <option value="Spending">Spending</option>
+              <option value="Savings">Savings</option>
+              <option value="Transfer">Transfer</option>
+            </select>
+            <select id="financeSortInput" aria-label="Sort finance entries">
+              <option value="newest">Sort: Newest first</option>
+              <option value="oldest">Sort: Oldest first</option>
+              <option value="highest">Sort: Highest purchase first</option>
+              <option value="lowest">Sort: Lowest purchase first</option>
+            </select>
+            <button id="clearTransactionsBtn" class="danger-button action-button" type="button">Delete Imported Entries</button>
+          </div>
+        </div>
+        <div id="financeEntryList" class="compact-list transaction-list"></div>
+        <button id="toggleFinanceHistoryBtn" class="secondary-button action-button transaction-toggle hidden" type="button">Show More</button>
+      </details>
+    </div>
+  </main>
+
+  <div id="setupModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="setupModalTitle">
+    <section class="modal-panel setup-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Settings</p>
+          <h2 id="setupModalTitle">Personalize Your Dashboard</h2>
+        </div>
+        <button id="closeSetupModalBtn" class="secondary-button action-button" type="button">Close</button>
+      </div>
+
+      <form id="setupForm" class="setup-form">
+        <label>
+          <span>First name</span>
+          <input id="profileNameInput" type="text" placeholder="Name" required>
+        </label>
+        <label>
+          <span>Dashboard title</span>
+          <select id="profileTitleInput">
+            <option value="Discipline Dashboard">Discipline Dashboard</option>
+            <option value="Command Center">Command Center</option>
+            <option value="Mission Control">Mission Control</option>
+            <option value="Higher Standard">Higher Standard</option>
+          </select>
+        </label>
+        <button class="primary-button" type="submit">Save Setup</button>
+      </form>
+
+      <div class="settings-grid">
+        <article class="settings-card">
+          <div>
+            <strong>Customize Tabs</strong>
+            <span>Reorder Command Center, Goals, Motivation, Finance, History, and Journal.</span>
+          </div>
+          <button id="customizeTabsBtn" class="secondary-button action-button" type="button">Customize Tabs</button>
+        </article>
+        <article class="settings-card">
+          <div>
+            <strong>Theme Preferences</strong>
+            <span>Choose the color preset that fits how you want the dashboard to feel.</span>
+          </div>
+          <select id="themeSelect" aria-label="Theme preference">
+            <option value="dark-discipline">Dark Discipline</option>
+            <option value="light-focus">Light Focus</option>
+            <option value="midnight-blue">Midnight Blue</option>
+            <option value="forest-green">Forest Green</option>
+            <option value="high-contrast">High Contrast</option>
+            <option value="warm-minimal">Warm Minimal</option>
+          </select>
+        </article>
+        <article class="settings-card">
+          <div>
+            <strong>Personalization</strong>
+            <span>Your name and title stay saved in this browser only.</span>
+          </div>
+        </article>
+        <article class="settings-card settings-card-full">
+          <div>
+            <strong>Customize Weekly System</strong>
+            <span>Edit the non-negotiables and goal categories that power this dashboard.</span>
+          </div>
+          <div class="customize-grid">
+            <div>
+              <div class="section-heading compact-heading">
+                <h3>Non-Negotiables</h3>
+                <p>Daily standards saved in this browser.</p>
+              </div>
+              <form id="nonNegotiableForm" class="inline-form">
+                <input id="nonNegotiableInput" type="text" placeholder="New non-negotiable">
+                <button class="secondary-button action-button" type="submit">Add</button>
+              </form>
+              <div id="nonNegotiableEditorList" class="editor-list"></div>
+            </div>
+            <div>
+              <div class="section-heading compact-heading">
+                <h3>Goal Categories</h3>
+                <p>Used by weekly, monthly, yearly, and long-term goals.</p>
+              </div>
+              <form id="goalCategoryForm" class="inline-form">
+                <input id="goalCategoryInput" type="text" placeholder="New category">
+                <button class="secondary-button action-button" type="submit">Add</button>
+              </form>
+              <div id="goalCategoryEditorList" class="editor-list"></div>
+            </div>
+          </div>
+        </article>
+        <article class="settings-card danger-zone">
+          <div>
+            <strong>Reset Dashboard</strong>
+            <span>Clear local goals, finance, journal, history, settings, and saved preferences.</span>
+          </div>
+          <button id="resetDashboardBtn" class="danger-button action-button" type="button">Reset Dashboard</button>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <div id="historyModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="historyModalTitle">
+    <section class="modal-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Week archive</p>
+          <h2 id="historyModalTitle">Week Details</h2>
+        </div>
+        <button id="closeHistoryModalBtn" class="secondary-button action-button" type="button">Close</button>
+      </div>
+      <div id="historyModalBody"></div>
+    </section>
+  </div>
+
+  <div id="tabsModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="tabsModalTitle">
+    <section class="modal-panel setup-panel">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Settings</p>
+          <h2 id="tabsModalTitle">Customize Tabs</h2>
+        </div>
+        <button id="closeTabsModalBtn" class="secondary-button action-button" type="button">Close</button>
+      </div>
+      <div id="tabOrderList" class="tab-order-list"></div>
+      <div class="tab-order-actions">
+        <button id="resetTabsBtn" class="secondary-button action-button" type="button">Reset to Default Order</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
