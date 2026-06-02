@@ -1,0 +1,119 @@
+{
+  "current_week": {
+    "start_date": "2026-06-01",
+    "goals": [
+      {
+        "text": "Plan the week and choose three priorities",
+        "done": true,
+        "created_at": "2026-06-01",
+        "done_at": "2026-06-01 09:00:00"
+      },
+      {
+        "text": "Complete one focused study session",
+        "done": false,
+        "created_at": "2026-06-01",
+        "done_at": null
+      },
+      {
+        "text": "Exercise for 30 minutes",
+        "done": true,
+        "created_at": "2026-06-01",
+        "done_at": "2026-06-02 18:30:00"
+      },
+      {
+        "text": "Review budget and update spending notes",
+        "done": false,
+        "created_at": "2026-06-01",
+        "done_at": null
+      },
+      {
+        "text": "Write a short weekly reflection",
+        "done": false,
+        "created_at": "2026-06-01",
+        "done_at": null
+      }
+    ]
+  },
+  "history": [
+    {
+      "week": "Week of May 18 - 24",
+      "start_date": "2026-05-18",
+      "end_date": "2026-05-24",
+      "score": 80,
+      "completed": 4,
+      "total": 5,
+      "goals": [
+        {
+          "text": "Set up the weekly dashboard",
+          "done": true,
+          "created_at": "2026-05-18",
+          "done_at": "2026-05-18 10:15:00"
+        },
+        {
+          "text": "Finish a sample project task",
+          "done": true,
+          "created_at": "2026-05-18",
+          "done_at": "2026-05-20 16:45:00"
+        },
+        {
+          "text": "Read for 20 minutes three times",
+          "done": true,
+          "created_at": "2026-05-18",
+          "done_at": "2026-05-23 20:00:00"
+        },
+        {
+          "text": "Prepare meals for two weekdays",
+          "done": true,
+          "created_at": "2026-05-18",
+          "done_at": "2026-05-19 19:30:00"
+        },
+        {
+          "text": "Organize workspace",
+          "done": false,
+          "created_at": "2026-05-18",
+          "done_at": null
+        }
+      ]
+    },
+    {
+      "week": "Week of May 25 - 31",
+      "start_date": "2026-05-25",
+      "end_date": "2026-05-31",
+      "score": 60,
+      "completed": 3,
+      "total": 5,
+      "goals": [
+        {
+          "text": "Review last week's missed goal",
+          "done": true,
+          "created_at": "2026-05-25",
+          "done_at": "2026-05-25 08:45:00"
+        },
+        {
+          "text": "Complete two deep work blocks",
+          "done": true,
+          "created_at": "2026-05-25",
+          "done_at": "2026-05-27 14:00:00"
+        },
+        {
+          "text": "Take a screen-free evening",
+          "done": false,
+          "created_at": "2026-05-25",
+          "done_at": null
+        },
+        {
+          "text": "Update notes for an upcoming deadline",
+          "done": true,
+          "created_at": "2026-05-25",
+          "done_at": "2026-05-29 11:30:00"
+        },
+        {
+          "text": "Clean up the task backlog",
+          "done": false,
+          "created_at": "2026-05-25",
+          "done_at": null
+        }
+      ]
+    }
+  ]
+}

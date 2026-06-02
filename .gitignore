@@ -17,6 +17,16 @@ playwright-report/
 .env.development
 .env.*.local
 
+# Personal dashboard data
+goals.json
+weekly_log.txt
+data/weekly_log.txt
+*.local.json
+*.local.txt
+data/*.local.json
+data/*.local.txt
+weekly_progress.png
+
 # Hosting / tool state
 .netlify/
 .vercel/
