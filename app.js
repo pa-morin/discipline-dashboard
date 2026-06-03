@@ -2400,68 +2400,157 @@ function renderDailyCommandBriefing() {
   renderDisciplineSystem();
 }
 
-function getAccountabilityFinanceSummary() {
-  const weeklySummary = getCurrentWeekFinanceSummary();
-  const weeklySnapshot = getCurrentWeekFinanceSnapshot();
+function getAccountabilityReportAnalysis(data, options = {}) {
+  const completedGoals = data.completedGoals || [];
+  const missedGoals = data.missedGoals || [];
+  const totalGoals = data.goals ? data.goals.length : completedGoals.length + missedGoals.length;
+  const priorityGoals = (data.goals || []).filter(goal => goal.priority);
+  const finance = data.finance || { income: 0, spending: 0, savings: 0, net: 0 };
+  const journalDone = data.journalEntries && data.journalEntries.length > 0;
+  const nonNegotiables = data.nonNegotiables || [];
+  const completedNonNegotiables = data.completedNonNegotiables || nonNegotiables.filter(item => item.done);
+  const redFlags = [];
+  const actions = [];
+
+  if (totalGoals === 0) {
+    redFlags.push("No weekly goals exist.");
+    actions.push("Add weekly goals and choose one priority mission.");
+  }
+
+  if (totalGoals > 0 && missedGoals.length > totalGoals / 2) {
+    redFlags.push("More than half of weekly goals are incomplete.");
+  }
+
+  const incompletePriorityGoals = priorityGoals.filter(goal => !goal.done);
+  if (incompletePriorityGoals.length > 0) {
+    redFlags.push(`${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} incomplete.`);
+    actions.push(`Complete priority mission: ${incompletePriorityGoals[0].text}`);
+  }
+
+  if (nonNegotiables.length > 0 && completedNonNegotiables.length === 0) {
+    redFlags.push("No non-negotiables were completed.");
+  }
+
+  if (!journalDone) {
+    redFlags.push("No journal entry was saved for this week.");
+  }
+
+  if (finance.spending > finance.income && finance.spending > 0) {
+    redFlags.push("Spending is greater than income for the week.");
+    actions.push("Review spending before the next purchase.");
+  }
+
+  if (actions.length === 0 && missedGoals[0]) {
+    actions.push(`Complete one mission: ${missedGoals[0].text}`);
+  }
+
+  if (actions.length < 3 && nonNegotiables.some(item => !item.done)) {
+    actions.push("Recover one missed non-negotiable.");
+  }
+
+  if (actions.length < 3 && !journalDone) {
+    actions.push("Write a short journal entry before the week closes.");
+  }
+
+  if (actions.length < 3 && (!finance.entries || finance.entries.length === 0)) {
+    actions.push("Add one finance entry so money is visible.");
+  }
+
+  while (actions.length < 3) {
+    actions.push(["Prepare the next faithful action.", "Review progress with someone you trust.", "Keep the streak alive with one quiet act of discipline."][actions.length]);
+  }
+
+  if (options.useCurrentBriefing) {
+    const briefing = getDailyCommandBriefing();
+    return {
+      redFlags: briefing.redFlags.length > 0 ? briefing.redFlags.map(flag => flag.text) : redFlags,
+      actions: briefing.actions.length > 0 ? briefing.actions : actions
+    };
+  }
 
   return {
-    income: weeklySnapshot.income,
-    spending: weeklySnapshot.spending,
-    savings: weeklySummary.savings,
-    net: roundMoney(weeklySnapshot.income - weeklySnapshot.spending - weeklySummary.savings),
-    hasData: financeEntries.length > 0 || financeTransactions.length > 0
+    redFlags,
+    actions: actions.slice(0, 3)
   };
 }
 
-function buildAccountabilityReport() {
-  const score = getDisciplineScoreData();
-  const briefing = getDailyCommandBriefing();
-  const week = getCurrentWeekRange();
-  const completedGoals = goals.filter(goal => goal.done);
-  const incompleteGoals = goals.filter(goal => !goal.done);
-  const priorityGoals = goals.filter(goal => goal.priority);
-  const activeNonNegotiables = getActiveNonNegotiables();
-  const finance = getAccountabilityFinanceSummary();
-  const journalStatus = hasJournalEntryToday()
-    ? "Journal completed today."
-    : "No journal entry written today.";
+function getAccountabilityScoreSummary(data, options = {}) {
+  if (options.useCurrentScores) {
+    const score = getDisciplineScoreData();
+    return {
+      overall: score.overall === null ? "Needs data" : `${score.overall}%`,
+      goals: score.weekly.label,
+      nonNegotiables: score.nonNegotiables.label,
+      journal: score.journal.label,
+      finance: score.finance.label
+    };
+  }
+
+  const totalGoals = data.goals ? data.goals.length : 0;
+  const completedGoals = data.completedGoals ? data.completedGoals.length : 0;
+  const totalNonNegotiables = data.nonNegotiables ? data.nonNegotiables.length : 0;
+  const completedNonNegotiables = data.completedNonNegotiables ? data.completedNonNegotiables.length : 0;
+  const finance = data.finance || { income: 0, spending: 0, entries: [] };
+  const financeHasData = finance.entries && finance.entries.length > 0;
+  const financeScore = !financeHasData
+    ? "Needs data"
+    : finance.spending <= finance.income ? "100%" : "35%";
+
+  return {
+    overall: `${Number(data.score) || 0}%`,
+    goals: totalGoals > 0 ? `${Math.round((completedGoals / totalGoals) * 100)}%` : "Needs goals",
+    nonNegotiables: totalNonNegotiables > 0 ? `${Math.round((completedNonNegotiables / totalNonNegotiables) * 100)}%` : "Needs data",
+    journal: data.journalEntries && data.journalEntries.length > 0 ? "100%" : "0%",
+    finance: financeScore
+  };
+}
+
+function buildAccountabilityReport(data = getWeeklyReviewData(), options = {}) {
+  const score = getAccountabilityScoreSummary(data, options);
+  const analysis = getAccountabilityReportAnalysis(data, options);
+  const completedGoals = data.completedGoals || [];
+  const missedGoals = data.missedGoals || [];
+  const allGoals = data.goals || [];
+  const priorityGoals = allGoals.filter(goal => goal.priority);
+  const finance = data.finance || { income: 0, spending: 0, savings: 0, net: 0 };
+  const savedReview = options.aiReview || null;
+  const missedGoalLines = missedGoals.length === 0
+    ? "- No missed or incomplete goals right now."
+    : missedGoals.map(goal => `- ${goal.text}${goal.priority ? " (priority)" : ""}`).join("\n");
   const priorityStatus = priorityGoals.length === 0
     ? "- No priority goals marked."
     : priorityGoals.map(goal => `- ${goal.done ? "Done" : "Open"}: ${goal.text}`).join("\n");
-  const missedGoals = incompleteGoals.length === 0
-    ? "- No missed or incomplete goals right now."
-    : incompleteGoals.map(goal => `- ${goal.text}${goal.priority ? " (priority)" : ""}`).join("\n");
-  const nonNegotiableLines = activeNonNegotiables.length === 0
-    ? "- No active non-negotiables."
-    : activeNonNegotiables.map(item => {
-        const status = isHabitChecked(item) ? "done today" : "open today";
-        const streak = getNonNegotiableStreak(item);
-        return `- ${item.title}: ${status}; ${streak} ${streak === 1 ? "day" : "days"} streak`;
-      }).join("\n");
-  const redFlagLines = briefing.redFlags.length === 0
+  const nonNegotiables = data.nonNegotiables || [];
+  const nonNegotiableLines = nonNegotiables.length === 0
+    ? "- No non-negotiable history saved for this week."
+    : nonNegotiables.map(item => `- ${item.title}: ${item.done ? "done" : "open"}${item.streak !== undefined ? `; ${item.streak} ${item.streak === 1 ? "day" : "days"} streak` : ""}`).join("\n");
+  const journalStatus = data.journalEntries && data.journalEntries.length > 0
+    ? `${data.journalEntries.length} journal entr${data.journalEntries.length === 1 ? "y" : "ies"} saved this week.`
+    : "No journal entry saved for this week.";
+  const redFlagLines = analysis.redFlags.length === 0
     ? "- No major red flags."
-    : briefing.redFlags.map(flag => `- ${flag.text}`).join("\n");
-  const actionLines = briefing.actions.map((action, index) => `${index + 1}. ${action}`).join("\n");
-  const financeWarning = finance.spending > finance.income && finance.spending > 0
-    ? "\n- Warning: spending is greater than income this week."
-    : "";
+    : analysis.redFlags.map(flag => `- ${flag}`).join("\n");
+  const actionLines = analysis.actions.map((action, index) => `${index + 1}. ${action}`).join("\n");
+  const aiReviewSection = savedReview && savedReview.text
+    ? `\nAI Weekly Review\n${savedReview.text}\n`
+    : "\nAI Weekly Review\nNo AI weekly review saved.\n";
 
   return `Weekly Accountability Report
 
 Week
-${week.label}
+${data.week.label}
 
 Score Summary
-- Overall Discipline Score: ${score.overall === null ? "Needs data" : `${score.overall}%`}
-- Weekly Goal Score: ${score.weekly.label}
-- Non-Negotiable Score: ${score.nonNegotiables.label}
-- Journal Score: ${score.journal.label}
-- Finance Score: ${score.finance.label}
+- Overall Discipline Score: ${score.overall}
+- Goal Score: ${score.goals}
+- Non-Negotiable Score: ${score.nonNegotiables}
+- Journal Score: ${score.journal}
+- Finance Score: ${score.finance}
 
 Weekly Goals
-- Completed: ${completedGoals.length}/${goals.length}
+- Completed: ${completedGoals.length}/${allGoals.length}
 - Missed or incomplete goals:
-${missedGoals}
+${missedGoalLines}
 - Priority goal status:
 ${priorityStatus}
 
@@ -2476,15 +2565,14 @@ Finance
 - Income: ${formatMoney(finance.income)}
 - Spending: ${formatMoney(finance.spending)}
 - Savings: ${formatMoney(finance.savings)}
-- Net/remaining: ${formatMoney(finance.net)}${financeWarning}
-- Finance data status: ${finance.hasData ? "Entries found." : "No finance entries yet."}
+- Net/remaining: ${formatMoney(finance.net)}
 
 Red Flags
 ${redFlagLines}
 
 Top 3 Priorities
 ${actionLines}
-
+${aiReviewSection}
 Closing Line
 Do not chase a perfect week. Win the next faithful action.`;
 }
@@ -2503,7 +2591,11 @@ function previewAccountabilityReport() {
     return "";
   }
 
-  const report = buildAccountabilityReport();
+  const report = buildAccountabilityReport(getWeeklyReviewData(), {
+    aiReview: aiWeeklyReviews[getCurrentWeekKey()],
+    useCurrentScores: true,
+    useCurrentBriefing: true
+  });
   accountabilityReportPreview.value = report;
   accountabilityReportPanel.open = true;
   setAccountabilityReportStatus("Report preview generated.", "success");
@@ -2563,6 +2655,77 @@ function downloadAccountabilityReport() {
   URL.revokeObjectURL(link.href);
   link.remove();
   setAccountabilityReportStatus("Accountability report downloaded.", "success");
+}
+
+function getArchiveAccountabilityReport(index) {
+  const week = history[index];
+
+  if (!week) {
+    return "";
+  }
+
+  return buildAccountabilityReport(getArchiveWeeklyReviewData(index), {
+    aiReview: aiWeeklyReviews[getArchiveAiReviewKey(week, index)]
+  });
+}
+
+function setArchiveReportStatus(message, status = "") {
+  const statusElement = document.getElementById("archiveReportStatus");
+
+  if (!statusElement) {
+    return;
+  }
+
+  statusElement.textContent = message;
+  statusElement.className = `ai-review-status ${status}`.trim();
+}
+
+function previewArchiveAccountabilityReport(index) {
+  const preview = document.getElementById("archiveReportPreview");
+  const panel = document.getElementById("archiveAccountabilityReportPanel");
+
+  if (!preview) {
+    return "";
+  }
+
+  const report = getArchiveAccountabilityReport(index);
+  preview.value = report;
+
+  if (panel) {
+    panel.open = true;
+  }
+
+  setArchiveReportStatus("Archived accountability report preview generated.", "success");
+  return report;
+}
+
+async function copyArchiveAccountabilityReport(index) {
+  const preview = document.getElementById("archiveReportPreview");
+  const report = preview && preview.value ? preview.value : previewArchiveAccountabilityReport(index);
+
+  try {
+    await writeClipboardText(report);
+    setArchiveReportStatus("Archived accountability report copied.", "success");
+  } catch {
+    setArchiveReportStatus("Could not copy automatically. Select the preview text and copy it manually.", "error");
+  }
+}
+
+function downloadArchiveAccountabilityReport(index) {
+  const week = history[index];
+  const preview = document.getElementById("archiveReportPreview");
+  const report = preview && preview.value ? preview.value : previewArchiveAccountabilityReport(index);
+  const range = week ? getArchiveWeekRange(week, index) : getCurrentWeekRange();
+  const blob = new Blob([report], { type: "text/plain" });
+  const link = document.createElement("a");
+
+  link.href = URL.createObjectURL(blob);
+  link.download = `discipline-accountability-report-${range.endKey}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  URL.revokeObjectURL(link.href);
+  link.remove();
+  setArchiveReportStatus("Archived accountability report downloaded.", "success");
 }
 
 // Builds the morning briefing from today's missions and habits.
@@ -4006,7 +4169,8 @@ function getWeeklyReviewData() {
     nonNegotiables: activeNonNegotiables.map(item => ({
       id: item.id,
       title: item.title,
-      done: isHabitChecked(item)
+      done: isHabitChecked(item),
+      streak: getNonNegotiableStreak(item)
     })),
     completedNonNegotiables,
     missedNonNegotiables,
@@ -5198,6 +5362,27 @@ function renderArchiveAiReview(week, index) {
   `;
 }
 
+function renderArchiveAccountabilityReport(index) {
+  return `
+    <details id="archiveAccountabilityReportPanel" class="archive-accountability-report accountability-report-panel">
+      <summary>
+        <span>
+          <strong>Accountability Report</strong>
+          <small>View, copy, or download this saved week's shareable report</small>
+        </span>
+      </summary>
+      <div class="report-actions">
+        <button class="primary-button action-button" type="button" data-report-action="preview" data-history-index="${index}">View Report</button>
+        <button class="secondary-button action-button" type="button" data-report-action="copy" data-history-index="${index}">Copy Report</button>
+        <button class="secondary-button action-button" type="button" data-report-action="download" data-history-index="${index}">Download Report</button>
+      </div>
+      <p class="helper-text report-helper">This report is designed to share. Private journal text is not included by default.</p>
+      <p id="archiveReportStatus" class="ai-review-status"></p>
+      <textarea id="archiveReportPreview" class="report-preview" rows="12" readonly placeholder="Preview this archived accountability report here."></textarea>
+    </details>
+  `;
+}
+
 function openHistoryWeek(index) {
   const week = history[index];
 
@@ -5223,6 +5408,7 @@ function openHistoryWeek(index) {
     </div>
     ${renderArchiveGoals(week)}
     ${renderArchiveReview(week)}
+    ${renderArchiveAccountabilityReport(index)}
     ${renderArchiveAiReview(week, index)}
   `;
 
@@ -5694,6 +5880,22 @@ bindDelegatedClick(historyModalBody, "[data-archive-ai-action]", target => {
     copyArchiveAiPrompt(index);
   } else if (target.dataset.archiveAiAction === "copy-review") {
     copyArchiveAiReview(index);
+  }
+});
+
+bindDelegatedClick(historyModalBody, "[data-report-action]", target => {
+  const index = getNumericDatasetValue(target, "historyIndex");
+
+  if (index === null) {
+    return;
+  }
+
+  if (target.dataset.reportAction === "preview") {
+    previewArchiveAccountabilityReport(index);
+  } else if (target.dataset.reportAction === "copy") {
+    copyArchiveAccountabilityReport(index);
+  } else if (target.dataset.reportAction === "download") {
+    downloadArchiveAccountabilityReport(index);
   }
 });
 

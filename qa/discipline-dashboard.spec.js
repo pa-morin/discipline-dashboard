@@ -167,13 +167,12 @@ test("daily command briefing does not overflow on mobile", async ({ page }) => {
   await completeSetup(page);
 
   await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
-  await page.locator("#accountabilityReportPanel summary").click();
-  await page.click("#previewReportBtn");
+  await expect(page.locator("#commandTab #accountabilityReportPanel")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   expect(consoleErrors).toEqual([]);
 });
 
-test("accountability report previews, copies, downloads, and protects journal privacy", async ({ page }) => {
+test("current week accountability report lives in weekly review and protects journal privacy", async ({ page }) => {
   const consoleErrors = await openFreshApp(page);
   await completeSetup(page);
   await addMission(page, "Finish report export", "Monday", true);
@@ -187,8 +186,10 @@ test("accountability report previews, copies, downloads, and protects journal pr
   await page.getByRole("button", { name: "Finance" }).click();
   await addFinanceEntry(page, "Income", "100", "Report paycheck");
   await addFinanceEntry(page, "Spending", "25", "Report groceries");
-  await page.getByRole("button", { name: "Command Center" }).click();
 
+  await page.getByRole("button", { name: "Command Center" }).click();
+  await expect(page.locator("#commandTab #accountabilityReportPanel")).toHaveCount(0);
+  await page.getByRole("button", { name: "Goals", exact: true }).click();
   await expect(page.locator("#accountabilityReportPanel")).toBeVisible();
   await page.locator("#accountabilityReportPanel summary").click();
   await page.click("#previewReportBtn");
@@ -200,12 +201,13 @@ test("accountability report previews, copies, downloads, and protects journal pr
   await expect(preview).toHaveValue(/Completed: 1\/2/);
   await expect(preview).toHaveValue(/Stretch goal left open/);
   await expect(preview).toHaveValue(/Non-Negotiables/);
-  await expect(preview).toHaveValue(/Prayer: done today/);
-  await expect(preview).toHaveValue(/Journal completed today/);
+  await expect(preview).toHaveValue(/Prayer: done/);
+  await expect(preview).toHaveValue(/journal entry saved this week/);
   await expect(preview).not.toHaveValue(/PRIVATE RANT SHOULD NOT EXPORT/);
   await expect(preview).toHaveValue(/Finance/);
   await expect(preview).toHaveValue(/Red Flags/);
   await expect(preview).toHaveValue(/Top 3 Priorities/);
+  await expect(preview).toHaveValue(/No AI weekly review saved/);
 
   await page.click("#copyReportBtn");
   await expect(page.locator("#accountabilityReportStatus")).toContainText("copied");
@@ -526,7 +528,7 @@ test("archived history weeks can generate and save AI reviews", async ({ page })
         won: "Protected study time.",
         failed: "Stayed up too late.",
         attack: "Start earlier tomorrow.",
-        rant: ""
+        rant: "ARCHIVE PRIVATE RANT SHOULD NOT EXPORT"
       }
     }));
     localStorage.setItem("disciplineDashboardFinance", JSON.stringify([
@@ -561,6 +563,24 @@ test("archived history weeks can generate and save AI reviews", async ({ page })
   await page.click("#closeHistoryModalBtn");
   await page.locator("#historyList .history-item").first().click();
   await expect(page.locator("#archiveAiReviewOutput")).toContainText("Archived review generated");
+  await page.locator("#archiveAccountabilityReportPanel summary").click();
+  await page.getByRole("button", { name: "View Report" }).click();
+  const archivePreview = page.locator("#archiveReportPreview");
+  await expect(archivePreview).toHaveValue(/Weekly Accountability Report/);
+  await expect(archivePreview).toHaveValue(/Finish archived win/);
+  await expect(archivePreview).toHaveValue(/Missed archived lift/);
+  await expect(archivePreview).toHaveValue(/Journal/);
+  await expect(archivePreview).not.toHaveValue(/ARCHIVE PRIVATE RANT SHOULD NOT EXPORT/);
+  await expect(archivePreview).toHaveValue(/AI Weekly Review/);
+  await expect(archivePreview).toHaveValue(/Archived review generated/);
+
+  await page.getByRole("button", { name: "Copy Report" }).click();
+  await expect(page.locator("#archiveReportStatus")).toContainText("copied");
+
+  const reportDownloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download Report" }).click();
+  const reportDownload = await reportDownloadPromise;
+  expect(reportDownload.suggestedFilename()).toMatch(/^discipline-accountability-report-\d{4}-\d{2}-\d{2}\.txt$/);
 });
 
 test("current week goals are sorted by weekday instead of creation order", async ({ page }) => {

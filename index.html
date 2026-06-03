@@ -155,22 +155,6 @@
       <div id="habitList" class="habit-grid streak-grid"></div>
     </section>
 
-    <details id="accountabilityReportPanel" class="panel accountability-report-panel">
-      <summary>
-        <span>
-          <strong>Accountability Report</strong>
-          <small>Preview, copy, or download this week&apos;s report</small>
-        </span>
-      </summary>
-      <div class="report-actions">
-        <button id="previewReportBtn" class="primary-button action-button" type="button">Preview Report</button>
-        <button id="copyReportBtn" class="secondary-button action-button" type="button">Copy Report</button>
-        <button id="downloadReportBtn" class="secondary-button action-button" type="button">Download Report</button>
-      </div>
-      <p id="accountabilityReportStatus" class="ai-review-status"></p>
-      <textarea id="accountabilityReportPreview" class="report-preview" rows="12" readonly placeholder="Preview your weekly accountability report here."></textarea>
-    </details>
-
     <details class="panel progress-details">
       <summary>
         <span>
@@ -277,6 +261,22 @@
         </label>
       </div>
       <div id="weeklyReviewSummary" class="weekly-review-summary goal-review-summary"></div>
+      <details id="accountabilityReportPanel" class="accountability-report-panel">
+        <summary>
+          <span>
+            <strong>Accountability Report</strong>
+            <small>Designed to share. Private journal text is not included by default.</small>
+          </span>
+        </summary>
+        <div class="report-actions">
+          <button id="previewReportBtn" class="primary-button action-button" type="button">Preview Report</button>
+          <button id="copyReportBtn" class="secondary-button action-button" type="button">Copy Report</button>
+          <button id="downloadReportBtn" class="secondary-button action-button" type="button">Download Report</button>
+        </div>
+        <p class="helper-text report-helper">This report is designed to share. Private journal text is not included by default.</p>
+        <p id="accountabilityReportStatus" class="ai-review-status"></p>
+        <textarea id="accountabilityReportPreview" class="report-preview" rows="12" readonly placeholder="Preview your weekly accountability report here."></textarea>
+      </details>
       <button id="newWeekBtn" class="danger-button review-button" type="button">Start New Week</button>
     </section>
 
