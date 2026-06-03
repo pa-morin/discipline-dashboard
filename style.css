@@ -392,6 +392,10 @@ h2 {
   border-radius: 8px;
 }
 
+#commandTab .panel {
+  margin-bottom: 12px;
+}
+
 .welcome-panel {
   border-color: rgba(66, 211, 146, 0.3);
   background:
@@ -399,26 +403,63 @@ h2 {
     var(--card-bg);
 }
 
+.setup-progress-panel {
+  padding: 12px 14px;
+}
+
+.setup-progress-panel .section-heading {
+  margin-bottom: 8px;
+}
+
+.setup-progress-panel h2 {
+  font-size: 1rem;
+}
+
 .welcome-copy {
-  max-width: 780px;
-  margin-bottom: 16px;
+  max-width: 860px;
+  margin-bottom: 10px;
   color: var(--muted);
-  line-height: 1.6;
+  font-size: 0.9rem;
+  line-height: 1.45;
 }
 
 .setup-checklist {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  --setup-progress: 0%;
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+.setup-checklist::before,
+.setup-checklist::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+}
+
+.setup-checklist::before {
+  right: 0;
+  background: var(--soft-surface);
+}
+
+.setup-checklist::after {
+  width: var(--setup-progress);
+  background: var(--accent);
 }
 
 .checklist-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px;
-  padding: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 9px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--soft-surface);
 }
 
@@ -430,26 +471,22 @@ h2 {
 .check-dot {
   display: inline-grid;
   place-items: center;
-  min-width: 38px;
-  height: 24px;
+  min-width: 22px;
+  height: 22px;
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--accent);
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 800;
 }
 
 .checklist-item strong {
   display: block;
-  margin-bottom: 5px;
-  font-size: 0.92rem;
+  font-size: 0.78rem;
 }
 
 .checklist-item p {
-  margin-bottom: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.45;
+  display: none;
 }
 
 .quote-panel {
@@ -474,7 +511,7 @@ h2 {
 }
 
 .compact-verse-card {
-  padding: 14px 16px;
+  padding: 10px 14px;
 }
 
 .motivation-video-card {
@@ -489,7 +526,56 @@ h2 {
 }
 
 .compact-verse-card .bible-verse-text {
-  font-size: 0.98rem;
+  font-size: 0.92rem;
+}
+
+.quote-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.quote-strip .section-heading {
+  align-items: center;
+  flex: 1 1 260px;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.quote-strip .section-heading > div {
+  min-width: 0;
+}
+
+.quote-strip .eyebrow,
+.quote-strip h2,
+.quote-strip .bible-verse-text {
+  display: inline;
+}
+
+.quote-strip .eyebrow {
+  margin-right: 8px;
+}
+
+.quote-strip h2 {
+  margin-right: 10px;
+  font-size: 0.95rem;
+}
+
+.quote-strip .bible-verse-text {
+  flex: 100 1 360px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.quote-strip .verse-theme {
+  display: none;
+}
+
+.quote-strip #newBibleVerseBtn {
+  flex: 0 0 auto;
 }
 
 .verse-theme {
@@ -553,32 +639,50 @@ h2 {
     var(--card-bg);
 }
 
+.daily-command-panel .section-heading {
+  margin-bottom: 12px;
+}
+
+.daily-command-panel h2 {
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+}
+
+.daily-command-panel #dailyCommandSummary {
+  max-width: 760px;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 1.02rem;
+  line-height: 1.45;
+}
+
 .daily-command-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(220px, 0.72fr);
-  gap: 14px;
-  margin-bottom: 14px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(210px, 0.7fr);
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .daily-command-card {
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
+  padding: 12px;
   background: var(--panel-light);
 }
 
 .daily-command-card h3 {
-  margin: 0 0 10px;
-  font-size: 0.98rem;
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  letter-spacing: 0;
 }
 
 .command-subsummary {
-  margin-top: 6px;
+  margin-top: 4px;
+  font-size: 0.86rem;
 }
 
 .command-briefing-grid {
   margin: 0;
-  padding-top: 14px;
+  padding-top: 10px;
   border-top: 1px solid var(--line);
 }
 
@@ -590,8 +694,8 @@ h2 {
 
 .command-action-list li,
 .minimum-day-list li {
-  margin-bottom: 8px;
-  line-height: 1.45;
+  margin-bottom: 6px;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
@@ -608,9 +712,10 @@ h2 {
 .command-flag {
   border: 1px solid rgba(255, 209, 102, 0.45);
   border-radius: 8px;
-  padding: 10px;
+  padding: 8px 10px;
   background: rgba(255, 209, 102, 0.1);
-  line-height: 1.45;
+  font-size: 0.88rem;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
@@ -628,8 +733,8 @@ h2 {
 }
 
 .minimum-day-card:not(.prominent) .minimum-day-list li {
-  margin-bottom: 5px;
-  font-size: 0.86rem;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
 }
 
 .minimum-day-card.prominent {
@@ -639,27 +744,39 @@ h2 {
     var(--panel-light);
 }
 
+.discipline-score-panel {
+  padding: 14px;
+}
+
+.discipline-score-panel .section-heading {
+  margin-bottom: 10px;
+}
+
+.discipline-score-panel h2 {
+  font-size: 1.08rem;
+}
+
 .discipline-score-grid {
   display: grid;
-  grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: minmax(150px, 1.25fr) repeat(4, minmax(92px, 1fr));
+  gap: 8px;
 }
 
 .discipline-score-grid .stat-card {
   min-width: 0;
-  padding: 12px;
+  padding: 10px;
 }
 
 .discipline-score-grid .stat-card p {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   color: var(--muted);
-  font-size: 0.76rem;
-  line-height: 1.45;
+  font-size: 0.7rem;
+  line-height: 1.3;
 }
 
 .discipline-score-grid .stat-card strong {
-  margin-top: 6px;
-  font-size: clamp(1.15rem, 2.2vw, 1.65rem);
+  margin-top: 4px;
+  font-size: clamp(1.02rem, 2vw, 1.42rem);
 }
 
 .discipline-overall-card {
@@ -708,7 +825,7 @@ h2 {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  min-height: 74px;
+  min-height: 62px;
   text-align: left;
 }
 
@@ -769,6 +886,70 @@ h2 {
 .progress-details .progress-chart-heading,
 .progress-details .chart-wrap {
   margin: 0 18px 18px;
+}
+
+.accountability-report-panel {
+  border-color: rgba(88, 166, 255, 0.2);
+  padding: 0;
+  overflow: hidden;
+}
+
+.accountability-report-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0 18px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.accountability-report-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.accountability-report-panel summary::after {
+  content: "+";
+  color: var(--accent);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.accountability-report-panel[open] summary::after {
+  content: "-";
+}
+
+.accountability-report-panel summary span {
+  display: grid;
+  gap: 3px;
+}
+
+.accountability-report-panel summary small {
+  color: var(--muted);
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 18px 10px;
+}
+
+.accountability-report-panel .ai-review-status {
+  margin: 0 18px 10px;
+}
+
+.report-preview {
+  display: block;
+  width: calc(100% - 36px);
+  min-height: 240px;
+  margin: 0 18px 18px;
+  resize: vertical;
+  overflow: auto;
+  white-space: pre;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.86rem;
+  line-height: 1.5;
 }
 
 .compact-list,
@@ -1308,6 +1489,81 @@ h2 {
   align-items: center;
 }
 
+#goalsTab .panel,
+#financeTab .panel {
+  margin-bottom: 12px;
+}
+
+.weekly-mission-panel,
+.current-week-panel,
+.weekly-review-panel {
+  padding: 16px;
+}
+
+.weekly-mission-panel .section-heading,
+.current-week-panel .section-heading,
+.weekly-review-panel .section-heading {
+  margin-bottom: 12px;
+}
+
+.goal-stats-strip {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.goal-stats-strip .stat-card {
+  padding: 12px;
+}
+
+.goal-stats-strip .stat-card strong {
+  margin-top: 6px;
+  font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+}
+
+.goal-planning-details {
+  padding: 0;
+  overflow: hidden;
+}
+
+.goal-planning-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 54px;
+  padding: 0 18px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.goal-planning-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.goal-planning-details summary::after {
+  content: "+";
+  color: var(--accent);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.goal-planning-details[open] summary::after {
+  content: "-";
+}
+
+.goal-planning-details summary span {
+  display: grid;
+  gap: 3px;
+}
+
+.goal-planning-details summary small {
+  color: var(--muted);
+}
+
+.goal-planning-details .planning-goal-form,
+.goal-planning-details .planning-goal-grid {
+  margin: 0 18px 18px;
+}
+
 .planning-goal-form {
   display: grid;
   grid-template-columns: 1.4fr 160px 150px 160px 150px 140px 1fr auto;
@@ -1383,6 +1639,67 @@ h2 {
   grid-template-columns: repeat(6, minmax(0, 1fr)) auto;
   gap: 10px;
   align-items: center;
+}
+
+.compact-finance-hero,
+.compact-finance-entry,
+.main-money-status-panel,
+.weekly-focus-panel,
+.monthly-snapshot-panel {
+  padding: 14px;
+}
+
+.compact-finance-hero .section-heading,
+.compact-finance-entry .section-heading,
+.weekly-focus-panel .section-heading,
+.monthly-snapshot-panel .section-heading {
+  margin-bottom: 10px;
+}
+
+.compact-finance-hero h2,
+.compact-finance-entry h2,
+.weekly-focus-panel h2,
+.monthly-snapshot-panel h2 {
+  font-size: 1.12rem;
+}
+
+.finance-entry-panel,
+.monthly-summary-panel,
+.finance-collapsible,
+.main-money-status-panel,
+.weekly-focus-panel {
+  margin-top: 12px;
+}
+
+.main-money-status-panel {
+  overflow: visible;
+}
+
+.money-status-card {
+  grid-template-columns: minmax(210px, 0.9fr) minmax(260px, 1.1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.money-status-card > div > strong {
+  font-size: clamp(2rem, 4.5vw, 3.6rem);
+}
+
+.money-status-card p {
+  margin-top: 8px;
+}
+
+.money-status-support article {
+  padding: 10px;
+}
+
+.weekly-spending-card {
+  gap: 10px;
+  padding: 12px;
+}
+
+.weekly-spending-money strong {
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
 }
 
 .simple-finance-form {

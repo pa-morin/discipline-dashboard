@@ -599,6 +599,12 @@ const copyAiPromptBtn = document.getElementById("copyAiPromptBtn");
 const copyAiReviewBtn = document.getElementById("copyAiReviewBtn");
 const aiReviewStatus = document.getElementById("aiReviewStatus");
 const aiReviewOutput = document.getElementById("aiReviewOutput");
+const accountabilityReportPanel = document.getElementById("accountabilityReportPanel");
+const previewReportBtn = document.getElementById("previewReportBtn");
+const copyReportBtn = document.getElementById("copyReportBtn");
+const downloadReportBtn = document.getElementById("downloadReportBtn");
+const accountabilityReportStatus = document.getElementById("accountabilityReportStatus");
+const accountabilityReportPreview = document.getElementById("accountabilityReportPreview");
 
 function readJson(key, fallback) {
   const item = readStorage(key);
@@ -1037,6 +1043,8 @@ function renderWelcomeState() {
       </div>
     </article>
   `).join("");
+  setupChecklist.style.setProperty("--setup-progress", `${Math.round((checklist.filter(item => item.done).length / checklist.length) * 100)}%`);
+  setupChecklist.setAttribute("aria-label", `${checklist.filter(item => item.done).length} of ${checklist.length} first-launch setup steps complete`);
 
   welcomePanel.classList.toggle("hidden", Boolean(userSettings.firstLaunchChecklistComplete));
 }
@@ -2340,6 +2348,171 @@ function renderDailyCommandBriefing() {
     .join("");
   minimumDayCard.classList.toggle("prominent", briefing.minimumDayProminent);
   renderDisciplineSystem();
+}
+
+function getAccountabilityFinanceSummary() {
+  const weeklySummary = getCurrentWeekFinanceSummary();
+  const weeklySnapshot = getCurrentWeekFinanceSnapshot();
+
+  return {
+    income: weeklySnapshot.income,
+    spending: weeklySnapshot.spending,
+    savings: weeklySummary.savings,
+    net: roundMoney(weeklySnapshot.income - weeklySnapshot.spending - weeklySummary.savings),
+    hasData: financeEntries.length > 0 || financeTransactions.length > 0
+  };
+}
+
+function buildAccountabilityReport() {
+  const score = getDisciplineScoreData();
+  const briefing = getDailyCommandBriefing();
+  const week = getCurrentWeekRange();
+  const completedGoals = goals.filter(goal => goal.done);
+  const incompleteGoals = goals.filter(goal => !goal.done);
+  const priorityGoals = goals.filter(goal => goal.priority);
+  const activeNonNegotiables = getActiveNonNegotiables();
+  const finance = getAccountabilityFinanceSummary();
+  const journalStatus = hasJournalEntryToday()
+    ? "Journal completed today."
+    : "No journal entry written today.";
+  const priorityStatus = priorityGoals.length === 0
+    ? "- No priority goals marked."
+    : priorityGoals.map(goal => `- ${goal.done ? "Done" : "Open"}: ${goal.text}`).join("\n");
+  const missedGoals = incompleteGoals.length === 0
+    ? "- No missed or incomplete goals right now."
+    : incompleteGoals.map(goal => `- ${goal.text}${goal.priority ? " (priority)" : ""}`).join("\n");
+  const nonNegotiableLines = activeNonNegotiables.length === 0
+    ? "- No active non-negotiables."
+    : activeNonNegotiables.map(item => {
+        const status = isHabitChecked(item) ? "done today" : "open today";
+        const streak = getNonNegotiableStreak(item);
+        return `- ${item.title}: ${status}; ${streak} ${streak === 1 ? "day" : "days"} streak`;
+      }).join("\n");
+  const redFlagLines = briefing.redFlags.length === 0
+    ? "- No major red flags."
+    : briefing.redFlags.map(flag => `- ${flag.text}`).join("\n");
+  const actionLines = briefing.actions.map((action, index) => `${index + 1}. ${action}`).join("\n");
+  const financeWarning = finance.spending > finance.income && finance.spending > 0
+    ? "\n- Warning: spending is greater than income this week."
+    : "";
+
+  return `Weekly Accountability Report
+
+Week
+${week.label}
+
+Score Summary
+- Overall Discipline Score: ${score.overall === null ? "Needs data" : `${score.overall}%`}
+- Weekly Goal Score: ${score.weekly.label}
+- Non-Negotiable Score: ${score.nonNegotiables.label}
+- Journal Score: ${score.journal.label}
+- Finance Score: ${score.finance.label}
+
+Weekly Goals
+- Completed: ${completedGoals.length}/${goals.length}
+- Missed or incomplete goals:
+${missedGoals}
+- Priority goal status:
+${priorityStatus}
+
+Non-Negotiables
+${nonNegotiableLines}
+
+Journal
+- ${journalStatus}
+- Private journal text is not included by default.
+
+Finance
+- Income: ${formatMoney(finance.income)}
+- Spending: ${formatMoney(finance.spending)}
+- Savings: ${formatMoney(finance.savings)}
+- Net/remaining: ${formatMoney(finance.net)}${financeWarning}
+- Finance data status: ${finance.hasData ? "Entries found." : "No finance entries yet."}
+
+Red Flags
+${redFlagLines}
+
+Top 3 Priorities
+${actionLines}
+
+Closing Line
+Do not chase a perfect week. Win the next faithful action.`;
+}
+
+function setAccountabilityReportStatus(message, status = "") {
+  if (!accountabilityReportStatus) {
+    return;
+  }
+
+  accountabilityReportStatus.textContent = message;
+  accountabilityReportStatus.className = `ai-review-status ${status}`.trim();
+}
+
+function previewAccountabilityReport() {
+  if (!accountabilityReportPreview) {
+    return "";
+  }
+
+  const report = buildAccountabilityReport();
+  accountabilityReportPreview.value = report;
+  accountabilityReportPanel.open = true;
+  setAccountabilityReportStatus("Report preview generated.", "success");
+
+  return report;
+}
+
+async function writeClipboardText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall back to selecting a temporary textarea below.
+    }
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.left = "-9999px";
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    document.execCommand("copy");
+  } catch {
+    // Some file:// test/browser contexts block programmatic copy after selection.
+  }
+  textArea.remove();
+}
+
+async function copyAccountabilityReport() {
+  const report = accountabilityReportPreview && accountabilityReportPreview.value
+    ? accountabilityReportPreview.value
+    : previewAccountabilityReport();
+
+  try {
+    await writeClipboardText(report);
+    setAccountabilityReportStatus("Accountability report copied.", "success");
+  } catch {
+    setAccountabilityReportStatus("Could not copy automatically. Select the preview text and copy it manually.", "error");
+  }
+}
+
+function downloadAccountabilityReport() {
+  const report = accountabilityReportPreview && accountabilityReportPreview.value
+    ? accountabilityReportPreview.value
+    : previewAccountabilityReport();
+  const blob = new Blob([report], { type: "text/plain" });
+  const link = document.createElement("a");
+
+  link.href = URL.createObjectURL(blob);
+  link.download = `discipline-accountability-report-${getTodayString()}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  URL.revokeObjectURL(link.href);
+  link.remove();
+  setAccountabilityReportStatus("Accountability report downloaded.", "success");
 }
 
 // Builds the morning briefing from today's missions and habits.
@@ -5508,6 +5681,9 @@ toggleWeekBtn.addEventListener("click", toggleCurrentWeekCollapsed);
 generateAiReviewBtn.addEventListener("click", generateAiWeeklyReview);
 copyAiPromptBtn.addEventListener("click", copyAiPrompt);
 copyAiReviewBtn.addEventListener("click", copyAiReview);
+previewReportBtn.addEventListener("click", previewAccountabilityReport);
+copyReportBtn.addEventListener("click", copyAccountabilityReport);
+downloadReportBtn.addEventListener("click", downloadAccountabilityReport);
 tabButtons.forEach(button => {
   button.addEventListener("click", () => switchTab(button.dataset.tab));
 });

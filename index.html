@@ -42,7 +42,7 @@
     </nav>
 
     <div id="commandTab" class="tab-panel active">
-    <section class="panel bible-verse-card compact-verse-card">
+    <section class="panel bible-verse-card compact-verse-card quote-strip">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Daily Bible Verse</p>
@@ -54,7 +54,7 @@
       <span id="bibleVerseTheme" class="verse-theme">Faith</span>
     </section>
 
-    <section id="welcomePanel" class="panel welcome-panel hidden">
+    <section id="welcomePanel" class="panel welcome-panel setup-progress-panel hidden">
       <div class="section-heading">
         <div>
           <p class="eyebrow">First launch</p>
@@ -157,6 +157,22 @@
       <div id="habitList" class="habit-grid streak-grid"></div>
     </section>
 
+    <details id="accountabilityReportPanel" class="panel accountability-report-panel">
+      <summary>
+        <span>
+          <strong>Accountability Report</strong>
+          <small>Preview, copy, or download this week&apos;s report</small>
+        </span>
+      </summary>
+      <div class="report-actions">
+        <button id="previewReportBtn" class="primary-button action-button" type="button">Preview Report</button>
+        <button id="copyReportBtn" class="secondary-button action-button" type="button">Copy Report</button>
+        <button id="downloadReportBtn" class="secondary-button action-button" type="button">Download Report</button>
+      </div>
+      <p id="accountabilityReportStatus" class="ai-review-status"></p>
+      <textarea id="accountabilityReportPreview" class="report-preview" rows="12" readonly placeholder="Preview your weekly accountability report here."></textarea>
+    </details>
+
     <details class="panel progress-details">
       <summary>
         <span>
@@ -198,7 +214,7 @@
     </div>
 
     <div id="goalsTab" class="tab-panel">
-    <section id="missionFormSection" class="panel">
+    <section id="missionFormSection" class="panel weekly-mission-panel">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Weekly Planning</p>
@@ -230,7 +246,7 @@
       </form>
     </section>
 
-    <section id="currentWeekSection" class="panel">
+    <section id="currentWeekSection" class="panel current-week-panel">
       <div class="section-heading">
         <div>
           <h2>Current Week</h2>
@@ -243,7 +259,7 @@
       <div id="goalList" class="goal-grid"></div>
     </section>
 
-    <section class="panel">
+    <section class="panel weekly-review-panel">
       <div class="section-heading">
         <h2>Weekly Review</h2>
         <p>Save this reflection when you start a new week.</p>
@@ -279,7 +295,7 @@
       <button id="newWeekBtn" class="danger-button review-button" type="button">Start New Week</button>
     </section>
 
-    <section class="stats-grid" aria-label="Goal dashboard">
+    <section class="stats-grid goal-stats-strip" aria-label="Goal dashboard">
       <article class="stat-card">
         <span>Monthly Goals Completed</span>
         <strong id="monthlyGoalsCompleted">0</strong>
@@ -298,11 +314,13 @@
       </article>
     </section>
 
-    <section class="panel">
-      <div class="section-heading">
-        <h2>Monthly Goals</h2>
-        <p>Goals for a specific month.</p>
-      </div>
+    <details class="panel goal-planning-details" open>
+      <summary>
+        <span>
+          <strong>Monthly Goals</strong>
+          <small>Goals for a specific month</small>
+        </span>
+      </summary>
       <form id="monthlyGoalForm" class="planning-goal-form">
         <input id="monthlyGoalInput" type="text" placeholder="Monthly goal" required>
         <input id="monthlyTargetInput" type="month" aria-label="Target month">
@@ -321,13 +339,15 @@
         <button id="monthlyGoalSubmitBtn" class="primary-button" type="submit">Add Goal</button>
       </form>
       <div id="monthlyGoalList" class="planning-goal-grid"></div>
-    </section>
+    </details>
 
-    <section class="panel">
-      <div class="section-heading">
-        <h2>Yearly Goals</h2>
-        <p>Big goals for a target year.</p>
-      </div>
+    <details class="panel goal-planning-details">
+      <summary>
+        <span>
+          <strong>Yearly Goals</strong>
+          <small>Big goals for a target year</small>
+        </span>
+      </summary>
       <form id="yearlyGoalForm" class="planning-goal-form">
         <input id="yearlyGoalInput" type="text" placeholder="Yearly goal" required>
         <input id="yearlyTargetInput" type="number" min="2020" max="2100" step="1" placeholder="Target year">
@@ -342,13 +362,15 @@
         <button id="yearlyGoalSubmitBtn" class="primary-button" type="submit">Add Goal</button>
       </form>
       <div id="yearlyGoalList" class="planning-goal-grid"></div>
-    </section>
+    </details>
 
-    <section class="panel">
-      <div class="section-heading">
-        <h2>Long-Term Goals</h2>
-        <p>Goals for the next chapter of your life.</p>
-      </div>
+    <details class="panel goal-planning-details">
+      <summary>
+        <span>
+          <strong>Long-Term Goals</strong>
+          <small>Goals for the next chapter of your life</small>
+        </span>
+      </summary>
       <form id="longTermGoalForm" class="planning-goal-form long-term-goal-form">
         <input id="longTermGoalInput" type="text" placeholder="Long-term goal" required>
         <select id="longTermTimeframeInput" aria-label="Target timeframe">
@@ -369,7 +391,7 @@
         <button id="longTermGoalSubmitBtn" class="primary-button" type="submit">Add Goal</button>
       </form>
       <div id="longTermGoalList" class="planning-goal-grid"></div>
-    </section>
+    </details>
     </div>
 
     <div id="journalTab" class="tab-panel">
@@ -466,7 +488,7 @@
     </div>
 
     <div id="financeTab" class="tab-panel">
-      <section class="panel finance-hero">
+      <section class="panel finance-hero compact-finance-hero">
         <div class="section-heading">
           <div>
             <h2>Finance</h2>
@@ -478,7 +500,7 @@
         </div>
       </section>
 
-      <section class="panel finance-entry-panel">
+      <section class="panel finance-entry-panel compact-finance-entry">
         <div class="section-heading">
           <h2>Simple Manual Entry</h2>
           <p>Add money made, spent, or saved.</p>
@@ -577,11 +599,11 @@
         </div>
       </section>
 
-      <section class="panel monthly-summary-panel">
-        <div class="section-heading">
-          <h2>Monthly Summary</h2>
-          <p>Remaining Money: Income - Spending - Savings.</p>
-        </div>
+      <details class="panel finance-collapsible monthly-summary-panel" open>
+        <summary>
+          <span>Monthly Summary</span>
+          <small>Remaining Money: Income - Spending - Savings</small>
+        </summary>
         <p class="helper-text">Savings is counted separately because it is money you chose to set aside.</p>
         <div class="budget-status-grid">
           <article class="stat-card">
@@ -604,7 +626,7 @@
         <div class="chart-wrap simple-chart-wrap">
           <canvas id="financeSimpleChart"></canvas>
         </div>
-      </section>
+      </details>
 
       <details class="panel finance-collapsible" id="budgetPlanSection">
         <summary>

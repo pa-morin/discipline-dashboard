@@ -141,9 +141,56 @@ test("daily command briefing updates from goals and journal state", async ({ pag
 test("daily command briefing does not overflow on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const consoleErrors = await openFreshApp(page);
+  await completeSetup(page);
 
   await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
+  await page.locator("#accountabilityReportPanel summary").click();
+  await page.click("#previewReportBtn");
   await expectNoHorizontalOverflow(page);
+  expect(consoleErrors).toEqual([]);
+});
+
+test("accountability report previews, copies, downloads, and protects journal privacy", async ({ page }) => {
+  const consoleErrors = await openFreshApp(page);
+  await completeSetup(page);
+  await addMission(page, "Finish report export", "Monday", true);
+  await addMission(page, "Stretch goal left open", "Tuesday");
+  await page.locator("#goalList .goal-card").filter({ hasText: "Finish report export" }).getByText("Complete").click();
+  await page.getByRole("button", { name: "Command Center" }).click();
+  await page.locator("#habitList .habit-card").filter({ hasText: "Prayer" }).locator("input").check();
+  await page.getByRole("button", { name: "Journal" }).click();
+  await page.fill("#journalRantInput", "PRIVATE RANT SHOULD NOT EXPORT");
+  await page.fill("#journalWonInput", "Report test win.");
+  await page.getByRole("button", { name: "Finance" }).click();
+  await addFinanceEntry(page, "Income", "100", "Report paycheck");
+  await addFinanceEntry(page, "Spending", "25", "Report groceries");
+  await page.getByRole("button", { name: "Command Center" }).click();
+
+  await expect(page.locator("#accountabilityReportPanel")).toBeVisible();
+  await page.locator("#accountabilityReportPanel summary").click();
+  await page.click("#previewReportBtn");
+  const preview = page.locator("#accountabilityReportPreview");
+
+  await expect(preview).toHaveValue(/Weekly Accountability Report/);
+  await expect(preview).toHaveValue(/Score Summary/);
+  await expect(preview).toHaveValue(/Weekly Goals/);
+  await expect(preview).toHaveValue(/Completed: 1\/2/);
+  await expect(preview).toHaveValue(/Stretch goal left open/);
+  await expect(preview).toHaveValue(/Non-Negotiables/);
+  await expect(preview).toHaveValue(/Prayer: done today/);
+  await expect(preview).toHaveValue(/Journal completed today/);
+  await expect(preview).not.toHaveValue(/PRIVATE RANT SHOULD NOT EXPORT/);
+  await expect(preview).toHaveValue(/Finance/);
+  await expect(preview).toHaveValue(/Red Flags/);
+  await expect(preview).toHaveValue(/Top 3 Priorities/);
+
+  await page.click("#copyReportBtn");
+  await expect(page.locator("#accountabilityReportStatus")).toContainText("copied");
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.click("#downloadReportBtn");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^discipline-accountability-report-\d{4}-\d{2}-\d{2}\.txt$/);
   expect(consoleErrors).toEqual([]);
 });
 
