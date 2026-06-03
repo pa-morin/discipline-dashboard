@@ -678,7 +678,7 @@ test("active week auto archives when a new week starts", async ({ page }) => {
   await expect(page.locator("#historyModalBody")).toContainText("Closed the important task.");
 });
 
-test("weekly review summarizes the week and AI failure falls back cleanly", async ({ page }) => {
+test("weekly review summarizes the week without current-week AI controls", async ({ page }) => {
   await openFreshApp(page);
   await completeSetup(page);
   await addMission(page, "Finish review feature", "Monday", true);
@@ -688,21 +688,13 @@ test("weekly review summarizes the week and AI failure falls back cleanly", asyn
   await page.fill("#journalWonInput", "Built the review flow.");
   await page.fill("#journalFailedInput", "Need a cleaner finish.");
 
-  await page.route("**/.netlify/functions/ai-weekly-review", route => route.fulfill({
-    status: 500,
-    contentType: "application/json",
-    body: JSON.stringify({ error: "AI review is not configured yet. Add OPENAI_API_KEY in Netlify environment variables, then redeploy." })
-  }));
-
   await page.locator(".tab-button[data-tab='goals']").click();
   await expect(page.locator("#weeklyReviewSummary")).toContainText("50%");
   await expect(page.locator("#weeklyReviewSummary")).toContainText("Finish review feature");
   await expect(page.locator("#weeklyReviewSummary")).toContainText("Missed but visible");
-
-  await page.click("#generateAiReviewBtn");
-  await expect(page.locator("#aiReviewStatus")).toContainText("fallback");
-  await page.click("#copyAiPromptBtn");
-  await expect(page.locator("#aiReviewStatus")).toContainText("AI prompt copied");
+  await expect(page.locator("#generateAiReviewBtn")).toHaveCount(0);
+  await expect(page.locator("#copyAiPromptBtn")).toHaveCount(0);
+  await expect(page.locator("#copyAiReviewBtn")).toHaveCount(0);
 });
 
 test("finance stays simple: multiple entries, transfer ignored, filter works", async ({ page }) => {

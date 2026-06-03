@@ -4114,7 +4114,7 @@ ${journalText}`;
 }
 
 function renderWeeklyReview() {
-  if (!weeklyReviewSummary || !aiReviewOutput) {
+  if (!weeklyReviewSummary) {
     return;
   }
 
@@ -4162,10 +4162,12 @@ function renderWeeklyReview() {
     </div>
   `;
 
-  aiReviewOutput.textContent = savedReview && savedReview.text
-    ? savedReview.text
-    : "No AI review generated for this week yet.";
-  aiReviewOutput.classList.toggle("empty-state", !(savedReview && savedReview.text));
+  if (aiReviewOutput) {
+    aiReviewOutput.textContent = savedReview && savedReview.text
+      ? savedReview.text
+      : "No AI review generated for this week yet.";
+    aiReviewOutput.classList.toggle("empty-state", !(savedReview && savedReview.text));
+  }
 }
 
 function setAiReviewStatus(message, status = "") {
@@ -4244,7 +4246,7 @@ async function copyAiPrompt() {
 
 async function copyAiReview() {
   const savedReview = aiWeeklyReviews[getCurrentWeekKey()];
-  const text = savedReview && savedReview.text ? savedReview.text : aiReviewOutput.textContent;
+  const text = savedReview && savedReview.text ? savedReview.text : aiReviewOutput && aiReviewOutput.textContent;
 
   if (!text || text.includes("No AI review generated")) {
     setAiReviewStatus("No AI review to copy yet. Use Copy AI Prompt or generate a review first.", "error");
@@ -4255,6 +4257,10 @@ async function copyAiReview() {
 }
 
 async function generateAiWeeklyReview() {
+  if (!generateAiReviewBtn || !aiReviewOutput) {
+    return;
+  }
+
   const data = getWeeklyReviewData();
   const prompt = buildAiWeeklyPrompt(data);
   let response = null;
@@ -5678,9 +5684,17 @@ watchMotivationVideoBtn.addEventListener("click", watchMotivationVideo);
 newBibleVerseBtn.addEventListener("click", showNewBibleVerse);
 newWeekBtn.addEventListener("click", startNewWeek);
 toggleWeekBtn.addEventListener("click", toggleCurrentWeekCollapsed);
-generateAiReviewBtn.addEventListener("click", generateAiWeeklyReview);
-copyAiPromptBtn.addEventListener("click", copyAiPrompt);
-copyAiReviewBtn.addEventListener("click", copyAiReview);
+if (generateAiReviewBtn) {
+  generateAiReviewBtn.addEventListener("click", generateAiWeeklyReview);
+}
+
+if (copyAiPromptBtn) {
+  copyAiPromptBtn.addEventListener("click", copyAiPrompt);
+}
+
+if (copyAiReviewBtn) {
+  copyAiReviewBtn.addEventListener("click", copyAiReview);
+}
 previewReportBtn.addEventListener("click", previewAccountabilityReport);
 copyReportBtn.addEventListener("click", copyAccountabilityReport);
 downloadReportBtn.addEventListener("click", downloadAccountabilityReport);
