@@ -25,6 +25,26 @@ async function openFreshApp(page) {
   return consoleErrors;
 }
 
+async function openFreshAppOnDate(page, isoDateTime) {
+  await page.addInitScript(fixedIsoDateTime => {
+    const RealDate = Date;
+    class MockDate extends RealDate {
+      constructor(...args) {
+        super(...(args.length ? args : [fixedIsoDateTime]));
+      }
+
+      static now() {
+        return new RealDate(fixedIsoDateTime).getTime();
+      }
+    }
+
+    Object.setPrototypeOf(MockDate, RealDate);
+    Date = MockDate;
+  }, isoDateTime);
+
+  return openFreshApp(page);
+}
+
 async function completeSetup(page, name = "Tester", title = "Command Center") {
   await expect(page.locator("#setupModal")).toBeVisible();
   await page.fill("#profileNameInput", name);
@@ -161,6 +181,39 @@ test("today's focus updates actions, readiness, red flags, and fallback plan", a
   expect(consoleErrors).toEqual([]);
 });
 
+test("goal scoring judges on-pace progress without counting future missions as missed", async ({ page }) => {
+  const consoleErrors = await openFreshAppOnDate(page, "2026-06-03T12:00:00");
+  await completeSetup(page);
+
+  await addMission(page, "Monday due mission", "Monday");
+  await addMission(page, "Wednesday checkpoint", "Wednesday", true);
+  await addMission(page, "Friday future mission", "Friday");
+  await addMission(page, "Saturday future mission", "Saturday");
+  await addMission(page, "Sunday future mission", "Sunday");
+  await page.locator("#goalList .goal-card").filter({ hasText: "Monday due mission" }).getByText("Complete").click();
+  await page.locator("#goalList .goal-card").filter({ hasText: "Wednesday checkpoint" }).getByText("Complete").click();
+
+  await expect(page.locator("#goalList .goal-card").filter({ hasText: "Friday future mission" })).toContainText("Upcoming");
+  await expect(page.locator("#goalList .goal-card").filter({ hasText: "Saturday future mission" })).toContainText("Upcoming");
+  await expect(page.locator("#goalList .goal-card").filter({ hasText: "Sunday future mission" })).toContainText("Upcoming");
+  await page.getByRole("button", { name: "Command Center" }).click();
+  await expect(page.locator("#dailyCommandSummary")).toContainText("on pace");
+  await expect(page.locator("#dailyReadinessRow")).toContainText("On pace");
+  await expect(page.locator("#dailyRedFlags")).not.toContainText("More than half");
+  await expect(page.locator("#dailyRedFlags")).not.toContainText("overdue");
+  await expect(page.locator("#weeklyGoalScore")).toContainText("100%");
+  await expect(page.locator("#weeklyGoalScoreNote")).toContainText("2 of 2 goals due by today complete");
+  await expect(page.locator("#weeklyCompletionScore")).toContainText("40%");
+
+  await page.getByRole("button", { name: "Goals", exact: true }).click();
+  await addMission(page, "Tuesday overdue mission", "Tuesday");
+  await expect(page.locator("#goalList .goal-card").filter({ hasText: "Tuesday overdue mission" })).toContainText("Overdue");
+  await page.getByRole("button", { name: "Command Center" }).click();
+  await expect(page.locator("#dailyCommandSummary")).toContainText("1 overdue mission");
+  await expect(page.locator("#dailyRedFlags")).toContainText("1 overdue mission");
+  expect(consoleErrors).toEqual([]);
+});
+
 test("daily command briefing does not overflow on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const consoleErrors = await openFreshApp(page);
@@ -225,6 +278,9 @@ test("current week accountability report lives in weekly review and protects jou
 
   await expect(preview).toHaveValue(/Weekly Accountability Report/);
   await expect(preview).toHaveValue(/Score Summary/);
+  await expect(preview).toHaveValue(/On-Pace Score/);
+  await expect(preview).toHaveValue(/Weekly Completion/);
+  await expect(preview).toHaveValue(/Future scheduled goals are not counted as missed/);
   await expect(preview).toHaveValue(/Weekly Goals/);
   await expect(preview).toHaveValue(/Completed: 1\/2/);
   await expect(preview).toHaveValue(/Stretch goal left open/);

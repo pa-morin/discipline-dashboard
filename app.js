@@ -475,6 +475,8 @@ const overallDisciplineNote = document.getElementById("overallDisciplineNote");
 const disciplineScoreMessage = document.getElementById("disciplineScoreMessage");
 const weeklyGoalScore = document.getElementById("weeklyGoalScore");
 const weeklyGoalScoreNote = document.getElementById("weeklyGoalScoreNote");
+const weeklyCompletionScore = document.getElementById("weeklyCompletionScore");
+const weeklyCompletionScoreNote = document.getElementById("weeklyCompletionScoreNote");
 const nonNegotiableScore = document.getElementById("nonNegotiableScore");
 const nonNegotiableScoreNote = document.getElementById("nonNegotiableScoreNote");
 const journalScore = document.getElementById("journalScore");
@@ -1423,7 +1425,8 @@ function getFinanceScoreData() {
 function getDisciplineScoreData() {
   const activeNonNegotiables = getActiveNonNegotiables();
   const completedHabits = getHabitCompletedCount(habitState.checks);
-  const weeklyScoreValue = goals.length > 0 ? getSuccessPercent(goals) : null;
+  const paceData = getGoalPaceData();
+  const goalScoreValue = paceData.total > 0 ? paceData.onPaceScore : null;
   const nonNegotiableScoreValue = activeNonNegotiables.length > 0
     ? Math.round((completedHabits / activeNonNegotiables.length) * 100)
     : null;
@@ -1431,7 +1434,7 @@ function getDisciplineScoreData() {
   const financeData = getFinanceScoreData();
   const weightedParts = [
     { score: nonNegotiableScoreValue, weight: 40 },
-    { score: weeklyScoreValue, weight: 30 },
+    { score: goalScoreValue, weight: 30 },
     { score: journalScoreValue, weight: 15 },
     { score: financeData.score, weight: 15 }
   ].filter(part => part.score !== null);
@@ -1441,7 +1444,7 @@ function getDisciplineScoreData() {
     : null;
   const missing = [];
 
-  if (weeklyScoreValue === null) {
+  if (goalScoreValue === null) {
     missing.push("weekly goals");
   }
 
@@ -1457,11 +1460,20 @@ function getDisciplineScoreData() {
     overall,
     missing,
     weekly: {
-      score: weeklyScoreValue,
-      label: weeklyScoreValue === null ? "Needs goals" : `${weeklyScoreValue}%`,
-      note: goals.length === 0
+      score: goalScoreValue,
+      label: goalScoreValue === null ? "Needs goals" : `${goalScoreValue}%`,
+      note: paceData.total === 0
         ? "Add weekly goals before trusting this part of the score."
-        : `${getCompletedCount(goals)} of ${goals.length} weekly goals complete.`
+        : paceData.dueByToday.length === 0
+          ? "No missions are due yet. Future goals are not counted as missed."
+          : `${paceData.completedDueByToday.length} of ${paceData.dueByToday.length} goals due by today complete.`
+    },
+    weeklyCompletion: {
+      score: paceData.weeklyCompletion,
+      label: paceData.weeklyCompletion === null ? "Needs goals" : `${paceData.weeklyCompletion}%`,
+      note: paceData.total === 0
+        ? "Add weekly goals to see final weekly completion."
+        : `${paceData.completed.length} of ${paceData.total} weekly goals complete. Future goals stay upcoming until their day.`
     },
     nonNegotiables: {
       score: nonNegotiableScoreValue,
@@ -1500,6 +1512,10 @@ function renderDisciplineScore() {
     : "Scores update from today's goals, basics, journal, and money data.";
   weeklyGoalScore.textContent = scoreData.weekly.label;
   weeklyGoalScoreNote.textContent = scoreData.weekly.note;
+  if (weeklyCompletionScore && weeklyCompletionScoreNote) {
+    weeklyCompletionScore.textContent = scoreData.weeklyCompletion.label;
+    weeklyCompletionScoreNote.textContent = scoreData.weeklyCompletion.note;
+  }
   nonNegotiableScore.textContent = scoreData.nonNegotiables.label;
   nonNegotiableScoreNote.textContent = scoreData.nonNegotiables.note;
   journalScore.textContent = scoreData.journal.label;
@@ -1606,6 +1622,65 @@ function getSuccessPercent(goalArray) {
   }
 
   return Math.round((getCompletedCount(goalArray) / goalArray.length) * 100);
+}
+
+function getTodayWeekIndex() {
+  const index = weekDayOrder.indexOf(getTodayName());
+  return index >= 0 ? index : 0;
+}
+
+function getGoalPaceData(goalArray = goals) {
+  const todayIndex = getTodayWeekIndex();
+  const goalsWithStatus = goalArray.map((goal, index) => {
+    const dayIndex = getGoalDaySortIndex(goal);
+    let status = "upcoming";
+    let statusLabel = "Upcoming";
+
+    if (goal.done) {
+      status = "completed";
+      statusLabel = "Completed";
+    } else if (dayIndex < todayIndex) {
+      status = "overdue";
+      statusLabel = "Overdue";
+    } else if (dayIndex === todayIndex) {
+      status = "dueToday";
+      statusLabel = "Due Today";
+    }
+
+    return {
+      ...goal,
+      originalIndex: goal.originalIndex !== undefined ? goal.originalIndex : index,
+      dayIndex,
+      status,
+      statusLabel
+    };
+  });
+  const dueByToday = goalsWithStatus.filter(goal => goal.dayIndex <= todayIndex);
+  const completedDueByToday = dueByToday.filter(goal => goal.done);
+  const overdue = goalsWithStatus.filter(goal => goal.status === "overdue");
+  const dueToday = goalsWithStatus.filter(goal => goal.status === "dueToday");
+  const upcoming = goalsWithStatus.filter(goal => goal.status === "upcoming");
+  const completed = goalsWithStatus.filter(goal => goal.done);
+  const weeklyCompletion = goalArray.length > 0 ? getSuccessPercent(goalArray) : null;
+  const onPaceScore = goalArray.length === 0
+    ? null
+    : dueByToday.length === 0
+      ? 100
+      : Math.round((completedDueByToday.length / dueByToday.length) * 100);
+
+  return {
+    goals: goalsWithStatus,
+    total: goalArray.length,
+    completed,
+    incomplete: goalsWithStatus.filter(goal => !goal.done),
+    dueByToday,
+    completedDueByToday,
+    overdue,
+    dueToday,
+    upcoming,
+    onPaceScore,
+    weeklyCompletion
+  };
 }
 
 function getCurrentStreak() {
@@ -2070,12 +2145,14 @@ function renderGoals() {
   }
 
   getWeeklyScheduleGoals().forEach(goal => {
+    const goalStatus = getGoalPaceData([goal]).goals[0];
     const card = document.createElement("article");
-    card.className = `goal-card ${goal.done ? "completed" : ""}`;
+    card.className = `goal-card ${goal.done ? "completed" : ""} goal-status-${goalStatus.status}`;
     card.dataset.goalIndex = goal.originalIndex;
 
     const categoryClass = toCssClassToken(goal.category, "personal");
     const priorityBadge = goal.priority ? '<span class="badge priority-badge">Priority</span>' : "";
+    const statusBadge = `<span class="badge goal-status-badge ${goalStatus.status}">${escapeHtml(goalStatus.statusLabel)}</span>`;
 
     card.innerHTML = `
       <div>
@@ -2084,6 +2161,7 @@ function renderGoals() {
           <div class="badge-row">
             <span class="badge ${categoryClass}">${escapeHtml(goal.category)}</span>
             ${priorityBadge}
+            ${statusBadge}
           </div>
         </div>
         <p class="goal-text">${escapeHtml(goal.text)}</p>
@@ -2227,17 +2305,17 @@ function getCurrentWeekFinanceSnapshot() {
 }
 
 function getDailyCommandBriefing() {
-  const totalGoals = goals.length;
-  const completedGoals = getCompletedCount(goals);
-  const incompleteGoals = goals
-    .map((goal, index) => ({ ...goal, originalIndex: index }))
-    .filter(goal => !goal.done);
-  const incompletePriorityGoals = incompleteGoals.filter(goal => goal.priority);
+  const paceData = getGoalPaceData();
+  const totalGoals = paceData.total;
+  const completedGoals = paceData.completed.length;
+  const incompleteGoals = paceData.incomplete;
+  const dueIncompleteGoals = [...paceData.overdue, ...paceData.dueToday];
+  const incompletePriorityGoals = dueIncompleteGoals.filter(goal => goal.priority);
+  const upcomingPriorityGoals = paceData.upcoming.filter(goal => goal.priority);
   const activeNonNegotiables = getActiveNonNegotiables();
   const completedHabits = getHabitCompletedCount(habitState.checks);
   const firstMissedHabit = activeNonNegotiables.find(item => !isHabitChecked(item));
   const journalDone = hasJournalEntryToday();
-  const weeklyPercent = getSuccessPercent(goals);
   const financeSnapshot = getCurrentWeekFinanceSnapshot();
   const hasFinanceData = financeEntries.length > 0 || financeTransactions.length > 0;
   const redFlags = [];
@@ -2258,13 +2336,16 @@ function getDailyCommandBriefing() {
     redFlags.push({ text: "Spending is greater than income for the current week.", action: "finance" });
   }
 
-  if (totalGoals > 0 && incompleteGoals.length > totalGoals / 2) {
-    redFlags.push({ text: "More than half of weekly goals are incomplete.", action: "first-incomplete" });
+  if (paceData.overdue.length > 0) {
+    redFlags.push({
+      text: `${paceData.overdue.length} overdue mission${paceData.overdue.length === 1 ? "" : "s"} need${paceData.overdue.length === 1 ? "s" : ""} recovery.`,
+      action: "first-incomplete"
+    });
   }
 
   if (incompletePriorityGoals.length > 0) {
     redFlags.push({
-      text: `${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} incomplete.`,
+      text: `${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} due by today and incomplete.`,
       action: "priority-goal"
     });
   }
@@ -2273,23 +2354,29 @@ function getDailyCommandBriefing() {
 
   if (totalGoals === 0) {
     summary = "Define the mission today. Add weekly goals before the day drifts.";
-  } else if (weeklyPercent < 50) {
-    summary = "The week is behind. Recover with one priority action and one completed basic.";
+  } else if (completedGoals === totalGoals) {
+    summary = "Weekly mission complete. Prepare tomorrow's next action and keep the basics steady.";
+  } else if (paceData.overdue.length > 0) {
+    summary = `${paceData.overdue.length} overdue mission${paceData.overdue.length === 1 ? "" : "s"} exist. Recover one before reaching for future work.`;
+  } else if (paceData.dueByToday.length > 0 && paceData.completedDueByToday.length === paceData.dueByToday.length) {
+    summary = "You are on pace. Future missions are not missed; keep today faithful and prepare the next step.";
+  } else if (paceData.dueToday.length > 0) {
+    summary = `${paceData.dueToday.length} mission${paceData.dueToday.length === 1 ? " is" : "s are"} due today. Execute before the day closes.`;
+  } else if (paceData.upcoming.length > 0 && paceData.dueByToday.length === 0) {
+    summary = "You are on pace. No missions are due yet, so use today to prepare cleanly.";
   } else if (activeNonNegotiables.length > 0 && completedHabits < Math.ceil(activeNonNegotiables.length / 2)) {
     summary = "The basics are slipping. Reset with prayer, movement, and one honest task.";
   } else if (!journalDone) {
     summary = "The day needs a record. Finish your work, then journal tonight.";
   } else if (financeSnapshot.net < 0 || financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0) {
     summary = "Money needs attention today. Review spending before adding anything new.";
-  } else if (totalGoals > 0 && completedGoals === totalGoals) {
-    summary = "Weekly mission complete. Prepare tomorrow's next action and keep the basics steady.";
-  } else if (weeklyPercent >= 80 && completedHabits >= Math.ceil(activeNonNegotiables.length / 2)) {
+  } else if (paceData.onPaceScore >= 80 && completedHabits >= Math.ceil(activeNonNegotiables.length / 2)) {
     summary = "You are in a solid position. Stay faithful to the plan and finish clean.";
   }
 
   const actions = [];
-  const firstPriority = incompletePriorityGoals[0];
-  const firstIncomplete = incompleteGoals[0];
+  const firstPriority = incompletePriorityGoals[0] || upcomingPriorityGoals[0];
+  const firstIncomplete = dueIncompleteGoals[0] || incompleteGoals[0];
 
   if (totalGoals === 0) {
     actions.push("Add weekly goals and choose one priority mission.");
@@ -2346,7 +2433,11 @@ function getDailyCommandBriefing() {
           ? "Needs goals"
           : completedGoals === totalGoals
             ? "Complete"
-            : `${completedGoals}/${totalGoals}`
+            : paceData.overdue.length > 0
+              ? `${paceData.overdue.length} overdue`
+              : paceData.dueToday.length > 0
+                ? `${paceData.dueToday.length} due today`
+                : "On pace"
       },
       { label: "Journal", value: journalDone ? "Done" : "Open" },
       {
@@ -2358,7 +2449,7 @@ function getDailyCommandBriefing() {
             : "Visible"
       }
     ],
-    minimumDayProminent: redFlags.length >= 2 || weeklyPercent < 50 || (activeNonNegotiables.length > 0 && completedHabits === 0)
+    minimumDayProminent: redFlags.length >= 2 || paceData.overdue.length > 0 || (activeNonNegotiables.length > 0 && completedHabits === 0)
   };
 }
 
@@ -2516,19 +2607,22 @@ function getFinancePattern() {
 
 function getGoalCompletionPattern() {
   const priorityGoals = goals.filter(goal => goal.priority);
+  const paceData = getGoalPaceData();
+  const duePriorityGoals = [...paceData.overdue, ...paceData.dueToday].filter(goal => goal.priority);
 
   if (priorityGoals.length === 0) {
     return null;
   }
 
   const completedPriority = priorityGoals.filter(goal => goal.done).length;
+  const incompleteDuePriority = duePriorityGoals.filter(goal => !goal.done).length;
 
   return {
     type: "Priority Goals",
-    strength: completedPriority === priorityGoals.length ? "good" : "warning",
-    text: completedPriority === priorityGoals.length
-      ? "Priority goals are complete so far. Keep attacking first things first."
-      : `Priority goals are not all complete (${completedPriority}/${priorityGoals.length}). Attack priority missions earlier in the week.`
+    strength: incompleteDuePriority === 0 ? "good" : "warning",
+    text: incompleteDuePriority === 0
+      ? `Priority goals are on pace so far (${completedPriority}/${priorityGoals.length} complete overall). Keep attacking first things first.`
+      : `${incompleteDuePriority} priority mission${incompleteDuePriority === 1 ? " is" : "s are"} due by today and incomplete. Attack priority missions earlier in the week.`
   };
 }
 
@@ -2539,14 +2633,15 @@ function getRecoveryPattern() {
 
   const recent = history.slice(-4);
   const recentAverage = Math.round(recent.reduce((sum, week) => sum + (Number(week.percent) || 0), 0) / recent.length);
-  const current = getSuccessPercent(goals);
+  const paceData = getGoalPaceData();
+  const current = paceData.onPaceScore === null ? getSuccessPercent(goals) : paceData.onPaceScore;
 
   return {
     type: "Recovery",
     strength: current >= recentAverage ? "good" : "warning",
     text: current >= recentAverage
-      ? `This week is improving compared to your recent average (${current}% vs ${recentAverage}%).`
-      : `This week is below your recent standard (${current}% vs ${recentAverage}%). Reset with one minimum day.`
+      ? `On-pace progress is improving compared to your recent average (${current}% vs ${recentAverage}%).`
+      : `On-pace progress is below your recent standard (${current}% vs ${recentAverage}%). Reset with one minimum day.`
   };
 }
 
@@ -2554,7 +2649,8 @@ function getDriftPattern() {
   const active = getActiveNonNegotiables();
   const habitLow = active.length > 0 && getHabitCompletedCount(habitState.checks) < Math.ceil(active.length / 2);
   const journalMissing = !hasJournalEntryToday();
-  const goalsUnderStandard = goals.length === 0 || getSuccessPercent(goals) < 50;
+  const paceData = getGoalPaceData();
+  const goalsUnderStandard = goals.length === 0 || (paceData.onPaceScore !== null && paceData.onPaceScore < 50);
 
   if ([habitLow, journalMissing, goalsUnderStandard].filter(Boolean).length >= 2) {
     return {
@@ -2626,6 +2722,10 @@ function getAccountabilityReportAnalysis(data, options = {}) {
   const completedGoals = data.completedGoals || [];
   const missedGoals = data.missedGoals || [];
   const totalGoals = data.goals ? data.goals.length : completedGoals.length + missedGoals.length;
+  const paceData = options.useCurrentBriefing ? getGoalPaceData() : null;
+  const overdueGoals = paceData ? paceData.overdue : [];
+  const dueTodayGoals = paceData ? paceData.dueToday : [];
+  const dueIncompleteGoals = paceData ? [...overdueGoals, ...dueTodayGoals] : missedGoals;
   const priorityGoals = (data.goals || []).filter(goal => goal.priority);
   const finance = data.finance || { income: 0, spending: 0, savings: 0, net: 0 };
   const journalDone = data.journalEntries && data.journalEntries.length > 0;
@@ -2639,13 +2739,17 @@ function getAccountabilityReportAnalysis(data, options = {}) {
     actions.push("Add weekly goals and choose one priority mission.");
   }
 
-  if (totalGoals > 0 && missedGoals.length > totalGoals / 2) {
-    redFlags.push("More than half of weekly goals are incomplete.");
+  if (paceData && overdueGoals.length > 0) {
+    redFlags.push(`${overdueGoals.length} overdue mission${overdueGoals.length === 1 ? "" : "s"} need${overdueGoals.length === 1 ? "s" : ""} recovery.`);
+  } else if (!paceData && totalGoals > 0 && missedGoals.length > totalGoals / 2) {
+    redFlags.push("More than half of weekly goals were incomplete.");
   }
 
-  const incompletePriorityGoals = priorityGoals.filter(goal => !goal.done);
+  const incompletePriorityGoals = paceData
+    ? dueIncompleteGoals.filter(goal => goal.priority)
+    : priorityGoals.filter(goal => !goal.done);
   if (incompletePriorityGoals.length > 0) {
-    redFlags.push(`${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} incomplete.`);
+    redFlags.push(`${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} ${paceData ? "due by today and " : ""}incomplete.`);
     actions.push(`Complete priority mission: ${incompletePriorityGoals[0].text}`);
   }
 
@@ -2662,8 +2766,10 @@ function getAccountabilityReportAnalysis(data, options = {}) {
     actions.push("Review spending before the next purchase.");
   }
 
-  if (actions.length === 0 && missedGoals[0]) {
-    actions.push(`Complete one mission: ${missedGoals[0].text}`);
+  if (actions.length === 0 && dueIncompleteGoals[0]) {
+    actions.push(`Complete one mission: ${dueIncompleteGoals[0].text}`);
+  } else if (actions.length === 0 && paceData && paceData.upcoming[0]) {
+    actions.push(`Prepare upcoming mission: ${paceData.upcoming[0].text}`);
   }
 
   if (actions.length < 3 && nonNegotiables.some(item => !item.done)) {
@@ -2702,6 +2808,7 @@ function getAccountabilityScoreSummary(data, options = {}) {
     return {
       overall: score.overall === null ? "Needs data" : `${score.overall}%`,
       goals: score.weekly.label,
+      weeklyCompletion: score.weeklyCompletion.label,
       nonNegotiables: score.nonNegotiables.label,
       journal: score.journal.label,
       finance: score.finance.label
@@ -2721,6 +2828,7 @@ function getAccountabilityScoreSummary(data, options = {}) {
   return {
     overall: `${Number(data.score) || 0}%`,
     goals: totalGoals > 0 ? `${Math.round((completedGoals / totalGoals) * 100)}%` : "Needs goals",
+    weeklyCompletion: totalGoals > 0 ? `${Math.round((completedGoals / totalGoals) * 100)}%` : "Needs goals",
     nonNegotiables: totalNonNegotiables > 0 ? `${Math.round((completedNonNegotiables / totalNonNegotiables) * 100)}%` : "Needs data",
     journal: data.journalEntries && data.journalEntries.length > 0 ? "100%" : "0%",
     finance: financeScore
@@ -2733,12 +2841,19 @@ function buildAccountabilityReport(data = getWeeklyReviewData(), options = {}) {
   const completedGoals = data.completedGoals || [];
   const missedGoals = data.missedGoals || [];
   const allGoals = data.goals || [];
+  const paceData = options.useCurrentScores ? getGoalPaceData() : null;
   const priorityGoals = allGoals.filter(goal => goal.priority);
   const finance = data.finance || { income: 0, spending: 0, savings: 0, net: 0 };
   const savedReview = options.aiReview || null;
+  const currentGoalStatusByText = paceData
+    ? new Map(paceData.goals.map(goal => [goal.text, goal.statusLabel]))
+    : new Map();
   const missedGoalLines = missedGoals.length === 0
-    ? "- No missed or incomplete goals right now."
-    : missedGoals.map(goal => `- ${goal.text}${goal.priority ? " (priority)" : ""}`).join("\n");
+    ? "- No incomplete goals right now."
+    : missedGoals.map(goal => {
+      const status = currentGoalStatusByText.get(goal.text);
+      return `- ${goal.text}${goal.priority ? " (priority)" : ""}${status ? ` - ${status}` : ""}`;
+    }).join("\n");
   const priorityStatus = priorityGoals.length === 0
     ? "- No priority goals marked."
     : priorityGoals.map(goal => `- ${goal.done ? "Done" : "Open"}: ${goal.text}`).join("\n");
@@ -2764,14 +2879,16 @@ ${data.week.label}
 
 Score Summary
 - Overall Discipline Score: ${score.overall}
-- Goal Score: ${score.goals}
+- On-Pace Score: ${score.goals}
+- Weekly Completion: ${score.weeklyCompletion}
 - Non-Negotiable Score: ${score.nonNegotiables}
 - Journal Score: ${score.journal}
 - Finance Score: ${score.finance}
+- Future scheduled goals are not counted as missed before their day.${paceData ? ` Overdue: ${paceData.overdue.length}; Due today: ${paceData.dueToday.length}; Upcoming: ${paceData.upcoming.length}.` : ""}
 
 Weekly Goals
 - Completed: ${completedGoals.length}/${allGoals.length}
-- Missed or incomplete goals:
+- Incomplete goals:
 ${missedGoalLines}
 - Priority goal status:
 ${priorityStatus}
@@ -2985,9 +3102,9 @@ function renderBriefing() {
 function renderAccountability() {
   const alerts = [];
   const isFirstUse = !hasDashboardData();
-  const weeklyPercent = getSuccessPercent(goals);
+  const paceData = getGoalPaceData();
   const completed = getCompletedCount(goals);
-  const incompletePriority = goals.filter(goal => goal.priority && !goal.done);
+  const incompletePriority = [...paceData.overdue, ...paceData.dueToday].filter(goal => goal.priority && !goal.done);
   const activeNonNegotiables = getActiveNonNegotiables();
   const habitPercent = activeNonNegotiables.length === 0
     ? 0
@@ -3010,8 +3127,8 @@ function renderAccountability() {
     });
   }
 
-  if (goals.length > 0 && weeklyPercent < 50) {
-    alerts.push({ text: "Weekly success is below 50%. Recover the week.", action: "current-week" });
+  if (paceData.overdue.length > 0 || (paceData.dueByToday.length > 0 && paceData.onPaceScore < 50)) {
+    alerts.push({ text: "On-pace progress is below standard. Recover the next due mission.", action: "current-week" });
   }
 
   if (!isFirstUse && habitPercent < 50) {

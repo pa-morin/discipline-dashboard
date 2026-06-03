@@ -869,7 +869,7 @@ h2 {
 
 .discipline-score-grid {
   display: grid;
-  grid-template-columns: minmax(150px, 1.25fr) repeat(4, minmax(92px, 1fr));
+  grid-template-columns: minmax(150px, 1.25fr) repeat(5, minmax(92px, 1fr));
   gap: 8px;
 }
 
@@ -895,6 +895,26 @@ h2 {
   background:
     linear-gradient(135deg, var(--accent-surface), transparent),
     var(--card-bg);
+}
+
+.goal-status-badge.completed {
+  background: rgba(66, 211, 146, 0.15);
+  color: var(--success);
+}
+
+.goal-status-badge.overdue {
+  background: rgba(255, 104, 104, 0.15);
+  color: var(--danger);
+}
+
+.goal-status-badge.dueToday {
+  background: rgba(255, 214, 102, 0.16);
+  color: #b98500;
+}
+
+.goal-status-badge.upcoming {
+  background: rgba(120, 142, 255, 0.14);
+  color: var(--muted);
 }
 
 .streak-grid {
