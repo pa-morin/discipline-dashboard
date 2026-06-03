@@ -108,10 +108,40 @@ test("first run feels alive instead of blank", async ({ page }) => {
   const consoleErrors = await openFreshApp(page);
 
   await expect(page.locator("#welcomePanel")).toBeVisible();
+  await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
+  await expect(page.locator("#dailyCommandSummary")).toContainText("Define the mission today");
+  await expect(page.locator("#dailyRedFlags")).toContainText("No weekly goals exist");
   await expect(page.locator("#setupChecklist .checklist-item")).toHaveCount(5);
   await expect(page.locator("#todayMissionList")).toContainText("Add your first mission");
   await expect(page.locator("#accountabilityList")).toContainText("First mission not set yet");
   await expect(page.locator("#progressChart")).toBeVisible();
+  expect(consoleErrors).toEqual([]);
+});
+
+test("daily command briefing updates from goals and journal state", async ({ page }) => {
+  const consoleErrors = await openFreshApp(page);
+  await completeSetup(page);
+
+  await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
+  await expect(page.locator("#dailyRedFlags")).toContainText("No weekly goals exist");
+  await expect(page.locator("#dailyRedFlags")).toContainText("Journal has not been written today");
+  await expect(page.locator("#dailyTopActions")).toContainText("Add weekly goals");
+
+  await addMission(page, "Finish command briefing", "Monday", true);
+  await page.getByRole("button", { name: "Command Center" }).click();
+
+  await expect(page.locator("#dailyRedFlags")).not.toContainText("No weekly goals exist");
+  await expect(page.locator("#dailyTopActions")).toContainText("Finish command briefing");
+  await expect(page.locator("#dailyRedFlags")).toContainText("Journal has not been written today");
+  expect(consoleErrors).toEqual([]);
+});
+
+test("daily command briefing does not overflow on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const consoleErrors = await openFreshApp(page);
+
+  await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
   expect(consoleErrors).toEqual([]);
 });
 

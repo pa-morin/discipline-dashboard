@@ -462,6 +462,11 @@ const newBibleVerseBtn = document.getElementById("newBibleVerseBtn");
 const briefingMessage = document.getElementById("briefingMessage");
 const todayMissionList = document.getElementById("todayMissionList");
 const todayHabitList = document.getElementById("todayHabitList");
+const dailyCommandSummary = document.getElementById("dailyCommandSummary");
+const dailyTopActions = document.getElementById("dailyTopActions");
+const dailyRedFlags = document.getElementById("dailyRedFlags");
+const minimumDayCard = document.getElementById("minimumDayCard");
+const minimumDayPlan = document.getElementById("minimumDayPlan");
 const accountabilityList = document.getElementById("accountabilityList");
 const welcomePanel = document.getElementById("welcomePanel");
 const setupChecklist = document.getElementById("setupChecklist");
@@ -900,6 +905,7 @@ function saveJournal() {
   journalEntries[getTodayString()] = getJournalText();
   writeJson(journalKey, journalEntries);
   renderWelcomeState();
+  renderDailyCommandBriefing();
   renderWeeklyReview();
 }
 
@@ -1977,6 +1983,175 @@ function getProgressMessage(percent) {
   return "Day secured.";
 }
 
+function hasJournalEntryToday() {
+  const entry = journalEntries[getTodayString()] || {};
+  return Boolean(entry.rant || entry.won || entry.failed || entry.attack);
+}
+
+function getCurrentWeekFinanceSnapshot() {
+  const range = getCurrentWeekRange();
+  const inCurrentWeek = entry => {
+    if (!entry.date) {
+      return false;
+    }
+
+    const date = getLocalDate(entry.date);
+    return date >= range.start && date <= range.end;
+  };
+  const snapshot = {
+    income: 0,
+    spending: 0,
+    transactionsSpent: 0
+  };
+
+  financeEntries.filter(inCurrentWeek).forEach(entry => {
+    if (entry.type === "Income") {
+      snapshot.income = roundMoney(snapshot.income + entry.amount);
+    }
+
+    if (entry.type === "Spending") {
+      snapshot.spending = roundMoney(snapshot.spending + entry.amount);
+    }
+  });
+
+  financeTransactions.filter(inCurrentWeek).forEach(transaction => {
+    if (transaction.type === "credit" && transaction.isRealIncome) {
+      snapshot.income = roundMoney(snapshot.income + transaction.amount);
+    }
+
+    if (transaction.type === "debit") {
+      snapshot.transactionsSpent = roundMoney(snapshot.transactionsSpent + transaction.amount);
+    }
+  });
+
+  snapshot.spending = roundMoney(snapshot.spending + snapshot.transactionsSpent);
+  snapshot.net = roundMoney(snapshot.income - snapshot.spending);
+
+  return snapshot;
+}
+
+function getDailyCommandBriefing() {
+  const totalGoals = goals.length;
+  const incompleteGoals = goals
+    .map((goal, index) => ({ ...goal, originalIndex: index }))
+    .filter(goal => !goal.done);
+  const incompletePriorityGoals = incompleteGoals.filter(goal => goal.priority);
+  const activeNonNegotiables = getActiveNonNegotiables();
+  const completedHabits = getHabitCompletedCount(habitState.checks);
+  const firstMissedHabit = activeNonNegotiables.find(item => !isHabitChecked(item));
+  const journalDone = hasJournalEntryToday();
+  const weeklyPercent = getSuccessPercent(goals);
+  const financeSnapshot = getCurrentWeekFinanceSnapshot();
+  const redFlags = [];
+
+  if (totalGoals === 0) {
+    redFlags.push("No weekly goals exist.");
+  }
+
+  if (activeNonNegotiables.length > 0 && completedHabits === 0) {
+    redFlags.push("No non-negotiables are completed today.");
+  }
+
+  if (!journalDone) {
+    redFlags.push("Journal has not been written today.");
+  }
+
+  if (financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0) {
+    redFlags.push("Spending is greater than income for the current week.");
+  }
+
+  if (totalGoals > 0 && incompleteGoals.length > totalGoals / 2) {
+    redFlags.push("More than half of weekly goals are incomplete.");
+  }
+
+  if (incompletePriorityGoals.length > 0) {
+    redFlags.push(`${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} incomplete.`);
+  }
+
+  let summary = "Hold the line today. Keep the basics steady and finish one concrete mission.";
+
+  if (totalGoals === 0) {
+    summary = "Define the mission today. Add weekly goals before the day drifts.";
+  } else if (weeklyPercent < 50) {
+    summary = "The week is behind. Recover with one priority action and one completed basic.";
+  } else if (activeNonNegotiables.length > 0 && completedHabits < Math.ceil(activeNonNegotiables.length / 2)) {
+    summary = "The basics are slipping. Reset with prayer, movement, and one honest task.";
+  } else if (!journalDone) {
+    summary = "The day needs a record. Finish your work, then journal tonight.";
+  } else if (financeSnapshot.net < 0 || financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0) {
+    summary = "Money needs attention today. Review spending before adding anything new.";
+  } else if (weeklyPercent >= 80 && completedHabits >= Math.ceil(activeNonNegotiables.length / 2)) {
+    summary = "You are in a solid position. Stay faithful to the plan and finish clean.";
+  }
+
+  const actions = [];
+  const firstPriority = incompletePriorityGoals[0];
+  const firstIncomplete = incompleteGoals[0];
+
+  if (totalGoals === 0) {
+    actions.push("Add weekly goals and choose one priority mission.");
+  } else if (firstPriority) {
+    actions.push(`Complete priority mission: ${firstPriority.text}`);
+  } else if (firstIncomplete) {
+    actions.push(`Complete one mission: ${firstIncomplete.text}`);
+  }
+
+  if (firstMissedHabit) {
+    actions.push(`Check off ${firstMissedHabit.title}.`);
+  } else {
+    actions.push("Protect the non-negotiables you already completed.");
+  }
+
+  if (!journalDone) {
+    actions.push("Write a short journal entry tonight.");
+  } else if (financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0) {
+    actions.push("Review current-week spending before the next purchase.");
+  } else if (financeEntries.length === 0 && financeTransactions.length === 0) {
+    actions.push("Add one finance entry so money is visible.");
+  } else {
+    actions.push("Review spending and keep the next decision clean.");
+  }
+
+  if (actions.length < 3) {
+    actions.push("Complete one small mission before resting.");
+  }
+
+  return {
+    summary,
+    actions: actions.slice(0, 3),
+    redFlags,
+    minimumDayProminent: redFlags.length >= 2 || weeklyPercent < 50 || completedHabits === 0
+  };
+}
+
+function renderDailyCommandBriefing() {
+  if (!dailyCommandSummary || !dailyTopActions || !dailyRedFlags || !minimumDayCard || !minimumDayPlan) {
+    return;
+  }
+
+  const briefing = getDailyCommandBriefing();
+  const minimumPlan = [
+    "Pray for 5 minutes",
+    "Move your body for 10 minutes",
+    "Read 1 page",
+    "Write 1 sentence in the journal",
+    "Make your bed or reset your space",
+    "Complete one small mission"
+  ];
+
+  dailyCommandSummary.textContent = briefing.summary;
+  dailyTopActions.innerHTML = briefing.actions
+    .map(action => `<li>${escapeHtml(action)}</li>`)
+    .join("");
+  dailyRedFlags.innerHTML = briefing.redFlags.length === 0
+    ? '<article class="command-flag good">No major red flags. Keep watch and execute.</article>'
+    : briefing.redFlags.map(flag => `<article class="command-flag">${escapeHtml(flag)}</article>`).join("");
+  minimumDayPlan.innerHTML = minimumPlan
+    .map(item => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+  minimumDayCard.classList.toggle("prominent", briefing.minimumDayProminent);
+}
+
 // Builds the morning briefing from today's missions and habits.
 function renderBriefing() {
   const todayName = getTodayName();
@@ -2019,6 +2194,8 @@ function renderBriefing() {
       <span>${isHabitChecked(item) ? "Done" : "Open"}</span>
     </article>
   `).join("");
+
+  renderDailyCommandBriefing();
 }
 
 // Creates warning cards for the highest-risk gaps in the day/week.
@@ -2924,6 +3101,7 @@ function renderFinance() {
   renderFinanceSimpleChart(totals);
   renderSpendingCategoryChart(breakdown);
   renderWelcomeState();
+  renderDailyCommandBriefing();
   renderWeeklyReview();
 }
 
