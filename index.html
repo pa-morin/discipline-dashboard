@@ -42,6 +42,18 @@
     </nav>
 
     <div id="commandTab" class="tab-panel active">
+    <section class="panel bible-verse-card compact-verse-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Daily Bible Verse</p>
+          <h2 id="bibleVerseReference">Loading verse...</h2>
+        </div>
+        <button id="newBibleVerseBtn" class="secondary-button action-button" type="button">New Verse</button>
+      </div>
+      <p id="bibleVerseText" class="bible-verse-text">Loading verse...</p>
+      <span id="bibleVerseTheme" class="verse-theme">Faith</span>
+    </section>
+
     <section id="welcomePanel" class="panel welcome-panel hidden">
       <div class="section-heading">
         <div>
@@ -55,46 +67,15 @@
       <div id="setupChecklist" class="setup-checklist"></div>
     </section>
 
-    <section class="panel bible-verse-card">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Daily Bible Verse</p>
-          <h2 id="bibleVerseReference">Loading verse...</h2>
-        </div>
-        <button id="newBibleVerseBtn" class="secondary-button action-button" type="button">New Verse</button>
-      </div>
-      <p id="bibleVerseText" class="bible-verse-text">Loading verse...</p>
-      <span id="bibleVerseTheme" class="verse-theme">Faith</span>
-    </section>
-
-    <section class="panel">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Start Here</p>
-          <h2>Today&apos;s Briefing</h2>
-          <p id="briefingMessage">Start the day. Win the first task.</p>
-        </div>
-        <button id="scrollWeekBtn" class="primary-button action-button" type="button">Plan Weekly Goals</button>
-      </div>
-      <div class="briefing-grid">
-        <div>
-          <h3>Today&apos;s Missions</h3>
-          <div id="todayMissionList" class="compact-list"></div>
-        </div>
-        <div>
-          <h3>Today&apos;s Non-Negotiables</h3>
-          <div id="todayHabitList" class="compact-list"></div>
-        </div>
-      </div>
-    </section>
-
     <section id="dailyCommandBriefing" class="panel daily-command-panel">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Daily Command Briefing</p>
           <h2>Daily Command Briefing</h2>
           <p id="dailyCommandSummary">Loading today&apos;s briefing...</p>
+          <p id="briefingMessage" class="command-subsummary">Start the day. Win the first task.</p>
         </div>
+        <button id="scrollWeekBtn" class="primary-button action-button" type="button">Plan Weekly Goals</button>
       </div>
       <div class="daily-command-grid">
         <article class="daily-command-card">
@@ -110,9 +91,19 @@
           <ul id="minimumDayPlan" class="minimum-day-list"></ul>
         </article>
       </div>
+      <div class="briefing-grid command-briefing-grid">
+        <div>
+          <h3>Today&apos;s Missions</h3>
+          <div id="todayMissionList" class="compact-list"></div>
+        </div>
+        <div>
+          <h3>Today&apos;s Non-Negotiables</h3>
+          <div id="todayHabitList" class="compact-list"></div>
+        </div>
+      </div>
     </section>
 
-    <section class="panel">
+    <section class="panel hidden" aria-hidden="true">
       <div class="section-heading">
         <h2>Accountability</h2>
         <p>Warnings based on current progress</p>
@@ -120,35 +111,78 @@
       <div id="accountabilityList" class="alert-grid"></div>
     </section>
 
+    <section id="disciplineScoreSection" class="panel discipline-score-panel">
+      <div class="section-heading">
+        <div>
+          <h2>Discipline Score</h2>
+          <p id="disciplineScoreMessage">Scores update from today&apos;s goals, basics, journal, and money data.</p>
+        </div>
+      </div>
+      <div class="discipline-score-grid">
+        <article class="stat-card discipline-overall-card">
+          <span>Overall Discipline Score</span>
+          <strong id="overallDisciplineScore">Needs data</strong>
+          <p id="overallDisciplineNote">Add weekly goals to make the score more useful.</p>
+        </article>
+        <article class="stat-card">
+          <span>Weekly Goal Score</span>
+          <strong id="weeklyGoalScore">0%</strong>
+          <p id="weeklyGoalScoreNote">Completed weekly goals / total weekly goals.</p>
+        </article>
+        <article class="stat-card">
+          <span>Non-Negotiable Score</span>
+          <strong id="nonNegotiableScore">0%</strong>
+          <p id="nonNegotiableScoreNote">Active non-negotiables completed today.</p>
+        </article>
+        <article class="stat-card">
+          <span>Journal Score</span>
+          <strong id="journalScore">0%</strong>
+          <p id="journalScoreNote">Today&apos;s journal entry is saved.</p>
+        </article>
+        <article class="stat-card">
+          <span>Finance Score</span>
+          <strong id="financeScore">Needs data</strong>
+          <p id="financeScoreNote">Add income/spending data for a money score.</p>
+        </article>
+      </div>
+    </section>
+
     <section id="nonNegotiablesSection" class="panel">
       <div class="section-heading">
-        <h2>Non-Negotiables</h2>
-        <p id="habitSummary">Daily habits reset automatically.</p>
+        <div>
+          <h2>Non-Negotiables</h2>
+          <p id="habitSummary">Daily habits reset automatically.</p>
+        </div>
       </div>
-      <div id="habitList" class="habit-grid"></div>
+      <div id="habitList" class="habit-grid streak-grid"></div>
     </section>
 
-    <section class="stats-grid" aria-label="Weekly stats">
-      <article class="stat-card">
-        <span>Weekly Success</span>
-        <strong id="successPercent">0%</strong>
-      </article>
-      <article class="stat-card">
-        <span>Completed</span>
-        <strong id="completedCount">0</strong>
-      </article>
-      <article class="stat-card">
-        <span>Total Goals</span>
-        <strong id="totalCount">0</strong>
-      </article>
-      <article class="stat-card">
-        <span>Current Streak</span>
-        <strong id="streakCount">0 weeks</strong>
-      </article>
-    </section>
-
-    <section class="panel">
-      <div class="section-heading">
+    <details class="panel progress-details">
+      <summary>
+        <span>
+          <strong>Progress Details</strong>
+          <small>Weekly stats and completion graph</small>
+        </span>
+      </summary>
+      <section class="stats-grid" aria-label="Weekly stats">
+        <article class="stat-card">
+          <span>Weekly Success</span>
+          <strong id="successPercent">0%</strong>
+        </article>
+        <article class="stat-card">
+          <span>Completed</span>
+          <strong id="completedCount">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Total Goals</span>
+          <strong id="totalCount">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Current Streak</span>
+          <strong id="streakCount">0 weeks</strong>
+        </article>
+      </section>
+      <div class="section-heading progress-chart-heading">
         <div>
           <h2>Progress Graph</h2>
           <p>Weekly completion percentages</p>
@@ -160,7 +194,7 @@
       <div class="chart-wrap">
         <canvas id="progressChart"></canvas>
       </div>
-    </section>
+    </details>
     </div>
 
     <div id="goalsTab" class="tab-panel">

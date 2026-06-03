@@ -468,6 +468,17 @@ const dailyRedFlags = document.getElementById("dailyRedFlags");
 const minimumDayCard = document.getElementById("minimumDayCard");
 const minimumDayPlan = document.getElementById("minimumDayPlan");
 const accountabilityList = document.getElementById("accountabilityList");
+const overallDisciplineScore = document.getElementById("overallDisciplineScore");
+const overallDisciplineNote = document.getElementById("overallDisciplineNote");
+const disciplineScoreMessage = document.getElementById("disciplineScoreMessage");
+const weeklyGoalScore = document.getElementById("weeklyGoalScore");
+const weeklyGoalScoreNote = document.getElementById("weeklyGoalScoreNote");
+const nonNegotiableScore = document.getElementById("nonNegotiableScore");
+const nonNegotiableScoreNote = document.getElementById("nonNegotiableScoreNote");
+const journalScore = document.getElementById("journalScore");
+const journalScoreNote = document.getElementById("journalScoreNote");
+const financeScore = document.getElementById("financeScore");
+const financeScoreNote = document.getElementById("financeScoreNote");
 const welcomePanel = document.getElementById("welcomePanel");
 const setupChecklist = document.getElementById("setupChecklist");
 const monthlyName = document.getElementById("monthlyName");
@@ -906,6 +917,7 @@ function saveJournal() {
   writeJson(journalKey, journalEntries);
   renderWelcomeState();
   renderDailyCommandBriefing();
+  renderDisciplineSystem();
   renderWeeklyReview();
 }
 
@@ -1011,6 +1023,11 @@ function renderWelcomeState() {
   ];
   const isChecklistComplete = checklist.every(item => item.done);
 
+  if (isChecklistComplete && !userSettings.firstLaunchChecklistComplete) {
+    userSettings.firstLaunchChecklistComplete = true;
+    saveSettings();
+  }
+
   setupChecklist.innerHTML = checklist.map(item => `
     <article class="checklist-item ${item.done ? "done" : ""}">
       <span class="check-dot">${item.done ? "Done" : ""}</span>
@@ -1021,7 +1038,7 @@ function renderWelcomeState() {
     </article>
   `).join("");
 
-  welcomePanel.classList.toggle("hidden", isChecklistComplete);
+  welcomePanel.classList.toggle("hidden", Boolean(userSettings.firstLaunchChecklistComplete));
 }
 
 function renderProfileTitle() {
@@ -1331,6 +1348,160 @@ function getHabitCompletedCount(checks) {
   return getActiveNonNegotiables().filter(item => isHabitChecked(item, checks)).length;
 }
 
+function isHabitCheckedOnDate(item, dateKey) {
+  if (dateKey === getTodayString()) {
+    return isHabitChecked(item, habitState.checks);
+  }
+
+  const record = habitHistory[dateKey];
+  return Boolean(record && record.checks && isHabitChecked(item, record.checks));
+}
+
+function getPreviousDateKey(dateKey) {
+  const date = getLocalDate(dateKey);
+  date.setDate(date.getDate() - 1);
+  return getDateString(date);
+}
+
+function getNonNegotiableStreak(item) {
+  let dateKey = getTodayString();
+  let streak = 0;
+
+  while (isHabitCheckedOnDate(item, dateKey)) {
+    streak++;
+    dateKey = getPreviousDateKey(dateKey);
+  }
+
+  return streak;
+}
+
+function getFinanceScoreData() {
+  const snapshot = getCurrentWeekFinanceSnapshot();
+  const hasFinanceData = financeEntries.length > 0 || financeTransactions.length > 0;
+
+  if (!hasFinanceData) {
+    return {
+      score: null,
+      label: "Needs data",
+      note: "Add income or spending data to score money discipline."
+    };
+  }
+
+  if (snapshot.spending === 0 && snapshot.income === 0) {
+    return {
+      score: 70,
+      label: "70%",
+      note: "Finance data exists, but this week has no income or spending yet."
+    };
+  }
+
+  if (snapshot.spending <= snapshot.income) {
+    return {
+      score: 100,
+      label: "100%",
+      note: "Current-week spending is controlled relative to income."
+    };
+  }
+
+  return {
+    score: 35,
+    label: "35%",
+    note: "Current-week spending is above income. Review money today."
+  };
+}
+
+function getDisciplineScoreData() {
+  const activeNonNegotiables = getActiveNonNegotiables();
+  const completedHabits = getHabitCompletedCount(habitState.checks);
+  const weeklyScoreValue = goals.length > 0 ? getSuccessPercent(goals) : null;
+  const nonNegotiableScoreValue = activeNonNegotiables.length > 0
+    ? Math.round((completedHabits / activeNonNegotiables.length) * 100)
+    : null;
+  const journalScoreValue = hasJournalEntryToday() ? 100 : 0;
+  const financeData = getFinanceScoreData();
+  const weightedParts = [
+    { score: nonNegotiableScoreValue, weight: 40 },
+    { score: weeklyScoreValue, weight: 30 },
+    { score: journalScoreValue, weight: 15 },
+    { score: financeData.score, weight: 15 }
+  ].filter(part => part.score !== null);
+  const totalWeight = weightedParts.reduce((sum, part) => sum + part.weight, 0);
+  const overall = totalWeight > 0
+    ? Math.round(weightedParts.reduce((sum, part) => sum + (part.score * part.weight), 0) / totalWeight)
+    : null;
+  const missing = [];
+
+  if (weeklyScoreValue === null) {
+    missing.push("weekly goals");
+  }
+
+  if (nonNegotiableScoreValue === null) {
+    missing.push("active non-negotiables");
+  }
+
+  if (financeData.score === null) {
+    missing.push("finance data");
+  }
+
+  return {
+    overall,
+    missing,
+    weekly: {
+      score: weeklyScoreValue,
+      label: weeklyScoreValue === null ? "Needs goals" : `${weeklyScoreValue}%`,
+      note: goals.length === 0
+        ? "Add weekly goals before trusting this part of the score."
+        : `${getCompletedCount(goals)} of ${goals.length} weekly goals complete.`
+    },
+    nonNegotiables: {
+      score: nonNegotiableScoreValue,
+      label: nonNegotiableScoreValue === null ? "Needs basics" : `${nonNegotiableScoreValue}%`,
+      note: activeNonNegotiables.length === 0
+        ? "Add active non-negotiables to score daily basics."
+        : `${completedHabits} of ${activeNonNegotiables.length} active non-negotiables complete today.`
+    },
+    journal: {
+      score: journalScoreValue,
+      label: `${journalScoreValue}%`,
+      note: hasJournalEntryToday()
+        ? "Today's journal entry is saved."
+        : "No journal entry yet today."
+    },
+    finance: financeData
+  };
+}
+
+function renderDisciplineScore() {
+  if (!overallDisciplineScore || !disciplineScoreMessage) {
+    return;
+  }
+
+  const scoreData = getDisciplineScoreData();
+  const isPartial = scoreData.missing.length > 0;
+
+  overallDisciplineScore.textContent = scoreData.overall === null
+    ? "Needs data"
+    : `${isPartial ? "Partial " : ""}${scoreData.overall}%`;
+  overallDisciplineNote.textContent = isPartial
+    ? `Missing ${scoreData.missing.join(", ")}. Score is useful, but not complete.`
+    : "Weighted score: 40% basics, 30% goals, 15% journal, 15% finance.";
+  disciplineScoreMessage.textContent = isPartial
+    ? "Some score inputs are missing, so treat this as a partial read."
+    : "Scores update from today's goals, basics, journal, and money data.";
+  weeklyGoalScore.textContent = scoreData.weekly.label;
+  weeklyGoalScoreNote.textContent = scoreData.weekly.note;
+  nonNegotiableScore.textContent = scoreData.nonNegotiables.label;
+  nonNegotiableScoreNote.textContent = scoreData.nonNegotiables.note;
+  journalScore.textContent = scoreData.journal.label;
+  journalScoreNote.textContent = scoreData.journal.note;
+  financeScore.textContent = scoreData.finance.label;
+  financeScoreNote.textContent = scoreData.finance.note;
+}
+
+function renderDisciplineSystem() {
+  renderDisciplineScore();
+}
+
 // Loads today's habit state and archives yesterday if the date changed.
 function loadHabits() {
   const saved = readJson(habitsKey, {});
@@ -1597,6 +1768,17 @@ function handleAccountabilityClick(action) {
       scrollToElement(missionFormSection);
       goalInput.focus();
     }, 80);
+    return;
+  }
+
+  if (action === "journal") {
+    switchTab("journal");
+    setTimeout(() => scrollToElement(journalWonInput), 80);
+    return;
+  }
+
+  if (action === "finance") {
+    switchTab("finance");
     return;
   }
 
@@ -1925,10 +2107,14 @@ function renderHabits() {
   getActiveNonNegotiables().forEach(item => {
     const label = document.createElement("label");
     const isDone = isHabitChecked(item);
-    label.className = `habit-card ${isDone ? "done" : ""}`;
+    const streak = getNonNegotiableStreak(item);
+    label.className = `habit-card streak-habit-card ${isDone ? "done" : ""}`;
     label.innerHTML = `
       <input type="checkbox" ${isDone ? "checked" : ""} data-habit-id="${escapeHtml(item.id)}">
-      <span>${escapeHtml(item.title)}</span>
+      <span class="habit-card-main">
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${isDone ? "Done today" : "Open today"} - ${streak} ${streak === 1 ? "day" : "days"} streak</small>
+      </span>
     `;
     habitList.appendChild(label);
   });
@@ -2045,27 +2231,30 @@ function getDailyCommandBriefing() {
   const redFlags = [];
 
   if (totalGoals === 0) {
-    redFlags.push("No weekly goals exist.");
+    redFlags.push({ text: "No weekly goals exist.", action: "mission-form" });
   }
 
   if (activeNonNegotiables.length > 0 && completedHabits === 0) {
-    redFlags.push("No non-negotiables are completed today.");
+    redFlags.push({ text: "No non-negotiables are completed today.", action: "habits" });
   }
 
   if (!journalDone) {
-    redFlags.push("Journal has not been written today.");
+    redFlags.push({ text: "Journal has not been written today.", action: "journal" });
   }
 
   if (financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0) {
-    redFlags.push("Spending is greater than income for the current week.");
+    redFlags.push({ text: "Spending is greater than income for the current week.", action: "finance" });
   }
 
   if (totalGoals > 0 && incompleteGoals.length > totalGoals / 2) {
-    redFlags.push("More than half of weekly goals are incomplete.");
+    redFlags.push({ text: "More than half of weekly goals are incomplete.", action: "first-incomplete" });
   }
 
   if (incompletePriorityGoals.length > 0) {
-    redFlags.push(`${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} incomplete.`);
+    redFlags.push({
+      text: `${incompletePriorityGoals.length} priority goal${incompletePriorityGoals.length === 1 ? " is" : "s are"} incomplete.`,
+      action: "priority-goal"
+    });
   }
 
   let summary = "Hold the line today. Keep the basics steady and finish one concrete mission.";
@@ -2145,11 +2334,12 @@ function renderDailyCommandBriefing() {
     .join("");
   dailyRedFlags.innerHTML = briefing.redFlags.length === 0
     ? '<article class="command-flag good">No major red flags. Keep watch and execute.</article>'
-    : briefing.redFlags.map(flag => `<article class="command-flag">${escapeHtml(flag)}</article>`).join("");
+    : briefing.redFlags.map(flag => `<article class="command-flag clickable-item" data-accountability-action="${escapeHtml(flag.action)}">${escapeHtml(flag.text)}</article>`).join("");
   minimumDayPlan.innerHTML = minimumPlan
     .map(item => `<li>${escapeHtml(item)}</li>`)
     .join("");
   minimumDayCard.classList.toggle("prominent", briefing.minimumDayProminent);
+  renderDisciplineSystem();
 }
 
 // Builds the morning briefing from today's missions and habits.
@@ -3102,6 +3292,7 @@ function renderFinance() {
   renderSpendingCategoryChart(breakdown);
   renderWelcomeState();
   renderDailyCommandBriefing();
+  renderDisciplineSystem();
   renderWeeklyReview();
 }
 
@@ -5214,6 +5405,10 @@ habitList.addEventListener("change", event => {
 });
 
 bindDelegatedClick(accountabilityList, "[data-accountability-action]", target => {
+  handleAccountabilityClick(target.dataset.accountabilityAction);
+});
+
+bindDelegatedClick(dailyRedFlags, "[data-accountability-action]", target => {
   handleAccountabilityClick(target.dataset.accountabilityAction);
 });
 

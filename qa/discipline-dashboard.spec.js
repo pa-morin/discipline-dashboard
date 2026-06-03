@@ -107,6 +107,7 @@ async function expectNoHorizontalOverflow(page) {
 test("first run feels alive instead of blank", async ({ page }) => {
   const consoleErrors = await openFreshApp(page);
 
+  await expect(page.locator("#commandTab > section").first()).toHaveClass(/bible-verse-card/);
   await expect(page.locator("#welcomePanel")).toBeVisible();
   await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
   await expect(page.locator("#dailyCommandSummary")).toContainText("Define the mission today");
@@ -114,7 +115,8 @@ test("first run feels alive instead of blank", async ({ page }) => {
   await expect(page.locator("#setupChecklist .checklist-item")).toHaveCount(5);
   await expect(page.locator("#todayMissionList")).toContainText("Add your first mission");
   await expect(page.locator("#accountabilityList")).toContainText("First mission not set yet");
-  await expect(page.locator("#progressChart")).toBeVisible();
+  await expect(page.locator(".progress-details")).toBeVisible();
+  await expect(page.locator(".progress-details")).toContainText("Progress Details");
   expect(consoleErrors).toEqual([]);
 });
 
@@ -141,6 +143,45 @@ test("daily command briefing does not overflow on mobile", async ({ page }) => {
   const consoleErrors = await openFreshApp(page);
 
   await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  expect(consoleErrors).toEqual([]);
+});
+
+test("discipline score and non-negotiable streaks update from habits and goals", async ({ page }) => {
+  const consoleErrors = await openFreshApp(page);
+  await completeSetup(page);
+
+  await expect(page.locator("#disciplineScoreSection")).toBeVisible();
+  await expect(page.locator("#nonNegotiablesSection")).toBeVisible();
+  await expect(page.locator("#habitList")).toContainText("Prayer");
+  await expect(page.locator("#habitList")).toContainText("Workout");
+  await expect(page.locator("#habitList")).toContainText("Reading");
+  await expect(page.locator("#habitList")).toContainText("Journal");
+  await expect(page.locator("#habitList")).toContainText("Bed Made");
+  await expect(page.locator("#weeklyGoalScore")).toContainText("Needs goals");
+  await expect(page.locator("#nonNegotiableScore")).toContainText("0%");
+
+  await page.locator("#habitList .habit-card").filter({ hasText: "Prayer" }).locator("input").check();
+
+  await expect(page.locator("#habitList .habit-card").filter({ hasText: "Prayer" })).toContainText("1 day");
+  await expect(page.locator("#nonNegotiableScore")).toContainText("20%");
+
+  await addMission(page, "Finish discipline score", "Monday", true);
+  await page.locator("#goalList .goal-card").filter({ hasText: "Finish discipline score" }).getByText("Complete").click();
+  await page.getByRole("button", { name: "Command Center" }).click();
+
+  await expect(page.locator("#weeklyGoalScore")).toContainText("100%");
+  expect(consoleErrors).toEqual([]);
+});
+
+test("discipline scoring stays stable with empty data on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const consoleErrors = await openFreshApp(page);
+
+  await expect(page.locator("#disciplineScoreSection")).toBeVisible();
+  await expect(page.locator("#overallDisciplineScore")).toContainText("Partial");
+  await expect(page.locator("#nonNegotiablesSection")).toBeVisible();
+  await expect(page.locator("#habitList")).toContainText("0 days");
   await expectNoHorizontalOverflow(page);
   expect(consoleErrors).toEqual([]);
 });
@@ -194,6 +235,9 @@ test("first launch checklist stays visible until every item is complete", async 
   await page.locator(".backup-dropdown summary").click();
   await page.click("#exportBackupBtn");
   await downloadPromise;
+  await expect(page.locator("#welcomePanel")).toBeHidden();
+
+  await page.reload();
   await expect(page.locator("#welcomePanel")).toBeHidden();
 });
 
@@ -512,7 +556,7 @@ test("briefing and accountability warnings jump to the right parts of the comman
   await expect(page.locator("#goalList .goal-card").first()).toHaveClass(/temporary-highlight/);
 
   await page.getByRole("button", { name: "Command Center" }).click();
-  await page.locator("#accountabilityList .alert-card").filter({ hasText: "priority" }).click();
+  await page.locator("#dailyRedFlags .command-flag").filter({ hasText: "priority" }).click();
   await expect(page.locator("#goalList .goal-card").first()).toHaveClass(/temporary-highlight/);
 });
 
