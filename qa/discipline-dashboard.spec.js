@@ -167,8 +167,36 @@ test("daily command briefing does not overflow on mobile", async ({ page }) => {
   await completeSetup(page);
 
   await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
+  await page.locator("#patternDetectionPanel summary").click();
   await expect(page.locator("#commandTab #accountabilityReportPanel")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
+  expect(consoleErrors).toEqual([]);
+});
+
+test("pattern detection shows empty state and local patterns without journal text", async ({ page }) => {
+  const consoleErrors = await openFreshApp(page);
+  await completeSetup(page);
+
+  await expect(page.locator("#patternDetectionPanel")).toBeVisible();
+  await page.locator("#patternDetectionPanel summary").click();
+  await expect(page.locator("#commandPatternList")).toContainText("Not enough history yet");
+  await page.getByRole("button", { name: "History" }).click();
+  await expect(page.locator("#historyPatternsPanel")).toBeVisible();
+  await expect(page.locator("#historyPatternList")).toContainText("Not enough history yet");
+
+  await addMission(page, "Pattern priority mission", "Monday", true);
+  await page.getByRole("button", { name: "Command Center" }).click();
+  await page.locator("#habitList .habit-card").filter({ hasText: "Prayer" }).locator("input").check();
+  await page.getByRole("button", { name: "Journal" }).click();
+  await page.fill("#journalRantInput", "PRIVATE PATTERN TEXT SHOULD NOT APPEAR");
+  await page.fill("#journalWonInput", "Logged a pattern test.");
+  await page.getByRole("button", { name: "Command Center" }).click();
+
+  await expect(page.locator("#commandPatternList")).toContainText("Finance tracking is incomplete");
+  await expect(page.locator("#commandPatternList")).not.toContainText("PRIVATE PATTERN TEXT SHOULD NOT APPEAR");
+  await page.getByRole("button", { name: "History" }).click();
+  await expect(page.locator("#historyPatternList")).toContainText("Finance tracking is incomplete");
+  await expect(page.locator("#historyPatternList")).not.toContainText("PRIVATE PATTERN TEXT SHOULD NOT APPEAR");
   expect(consoleErrors).toEqual([]);
 });
 

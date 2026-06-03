@@ -1050,6 +1050,93 @@ h2 {
   margin: 0 18px 10px;
 }
 
+.pattern-panel {
+  border-color: rgba(88, 166, 255, 0.2);
+}
+
+.pattern-panel details,
+.pattern-panel summary {
+  min-width: 0;
+}
+
+.pattern-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.pattern-panel summary::-webkit-details-marker {
+  display: none;
+}
+
+.pattern-panel summary::after {
+  content: "+";
+  color: var(--accent);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.pattern-panel[open] summary::after {
+  content: "-";
+}
+
+.pattern-panel summary span {
+  display: grid;
+  gap: 3px;
+}
+
+.pattern-panel summary small {
+  color: var(--muted);
+}
+
+.pattern-list {
+  display: grid;
+  gap: 10px;
+}
+
+.compact-pattern-list {
+  padding-top: 4px;
+}
+
+.pattern-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: var(--panel-light);
+}
+
+.pattern-card.good {
+  border-color: rgba(66, 211, 146, 0.42);
+  background: var(--accent-surface);
+}
+
+.pattern-card.warning {
+  border-color: rgba(255, 209, 102, 0.5);
+  background: var(--warning-surface);
+}
+
+.pattern-card.danger {
+  border-color: rgba(239, 71, 111, 0.58);
+  background: rgba(239, 71, 111, 0.12);
+}
+
+.pattern-card span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.pattern-card p {
+  margin: 0;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
 .report-preview {
   display: block;
   width: calc(100% - 36px);

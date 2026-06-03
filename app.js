@@ -468,6 +468,8 @@ const dailyRedFlags = document.getElementById("dailyRedFlags");
 const minimumDayCard = document.getElementById("minimumDayCard");
 const minimumDayPlan = document.getElementById("minimumDayPlan");
 const accountabilityList = document.getElementById("accountabilityList");
+const commandPatternList = document.getElementById("commandPatternList");
+const historyPatternList = document.getElementById("historyPatternList");
 const overallDisciplineScore = document.getElementById("overallDisciplineScore");
 const overallDisciplineNote = document.getElementById("overallDisciplineNote");
 const disciplineScoreMessage = document.getElementById("disciplineScoreMessage");
@@ -2398,6 +2400,226 @@ function renderDailyCommandBriefing() {
   minimumDayCard.classList.toggle("prominent", briefing.minimumDayProminent);
   minimumDayCard.open = briefing.minimumDayProminent;
   renderDisciplineSystem();
+  renderPatterns();
+}
+
+function getRecentDateKeys(days) {
+  const keys = [];
+  const today = getLocalDate(getTodayString());
+
+  for (let offset = 0; offset < days; offset++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - offset);
+    keys.push(getDateString(date));
+  }
+
+  return keys;
+}
+
+function getGoalPlanningPattern() {
+  const savedWeeks = history.filter(week => Number(week.total) > 0);
+
+  if (savedWeeks.length < 2) {
+    return null;
+  }
+
+  const withGoals = savedWeeks.filter(week => Number(week.total) > 0);
+  const noGoals = history.filter(week => Number(week.total) === 0);
+  const withGoalsAverage = Math.round(withGoals.reduce((sum, week) => sum + (Number(week.percent) || 0), 0) / withGoals.length);
+  const noGoalsAverage = noGoals.length > 0
+    ? Math.round(noGoals.reduce((sum, week) => sum + (Number(week.percent) || 0), 0) / noGoals.length)
+    : null;
+
+  if (noGoalsAverage !== null && withGoalsAverage > noGoalsAverage) {
+    return {
+      type: "Goal Planning",
+      strength: "good",
+      text: `Based on saved history, weeks with goals appear stronger so far (${withGoalsAverage}% vs ${noGoalsAverage}%).`
+    };
+  }
+
+  return {
+    type: "Goal Planning",
+    strength: "info",
+    text: `Based on saved history, goal weeks average ${withGoalsAverage}%. Keep setting the mission before the week starts.`
+  };
+}
+
+function getNonNegotiablePattern() {
+  const active = getActiveNonNegotiables();
+
+  if (active.length === 0) {
+    return null;
+  }
+
+  const recentDates = getRecentDateKeys(7);
+  const counts = active.map(item => ({
+    title: item.title,
+    count: recentDates.filter(date => isHabitCheckedOnDate(item, date)).length
+  }));
+  const strongest = counts.slice().sort((a, b) => b.count - a.count)[0];
+  const weakest = counts.slice().sort((a, b) => a.count - b.count)[0];
+
+  if (!strongest || !weakest) {
+    return null;
+  }
+
+  return {
+    type: "Non-Negotiables",
+    strength: weakest.count <= 1 ? "warning" : "info",
+    text: `${strongest.title} appears strongest at ${strongest.count}/7 days. ${weakest.title} is weakest at ${weakest.count}/7.`
+  };
+}
+
+function getJournalPattern() {
+  const recentDates = getRecentDateKeys(7);
+  const journalDays = recentDates.filter(date => {
+    const entry = journalEntries[date] || {};
+    return Boolean(entry.rant || entry.won || entry.failed || entry.attack);
+  }).length;
+
+  return {
+    type: "Journal",
+    strength: journalDays >= 4 ? "good" : "warning",
+    text: journalDays >= 4
+      ? `You journaled ${journalDays} of the last 7 days. Reflection appears steady so far.`
+      : `You journaled ${journalDays} of the last 7 days. Reflection may be the first discipline slipping.`
+  };
+}
+
+function getFinancePattern() {
+  const snapshot = getCurrentWeekFinanceSnapshot();
+  const hasFinanceData = financeEntries.length > 0 || financeTransactions.length > 0;
+
+  if (!hasFinanceData) {
+    return {
+      type: "Finance",
+      strength: "warning",
+      text: "Finance tracking is incomplete this week. Add income or spending entries to make the money picture visible."
+    };
+  }
+
+  if (snapshot.spending > snapshot.income && snapshot.spending > 0) {
+    return {
+      type: "Finance",
+      strength: "danger",
+      text: "Current-week spending appears higher than income. Review money before the next purchase."
+    };
+  }
+
+  return {
+    type: "Finance",
+    strength: "good",
+    text: "Finance tracking is visible this week, and spending is not above income based on current data."
+  };
+}
+
+function getGoalCompletionPattern() {
+  const priorityGoals = goals.filter(goal => goal.priority);
+
+  if (priorityGoals.length === 0) {
+    return null;
+  }
+
+  const completedPriority = priorityGoals.filter(goal => goal.done).length;
+
+  return {
+    type: "Priority Goals",
+    strength: completedPriority === priorityGoals.length ? "good" : "warning",
+    text: completedPriority === priorityGoals.length
+      ? "Priority goals are complete so far. Keep attacking first things first."
+      : `Priority goals are not all complete (${completedPriority}/${priorityGoals.length}). Attack priority missions earlier in the week.`
+  };
+}
+
+function getRecoveryPattern() {
+  if (history.length < 2 || goals.length === 0) {
+    return null;
+  }
+
+  const recent = history.slice(-4);
+  const recentAverage = Math.round(recent.reduce((sum, week) => sum + (Number(week.percent) || 0), 0) / recent.length);
+  const current = getSuccessPercent(goals);
+
+  return {
+    type: "Recovery",
+    strength: current >= recentAverage ? "good" : "warning",
+    text: current >= recentAverage
+      ? `This week is improving compared to your recent average (${current}% vs ${recentAverage}%).`
+      : `This week is below your recent standard (${current}% vs ${recentAverage}%). Reset with one minimum day.`
+  };
+}
+
+function getDriftPattern() {
+  const active = getActiveNonNegotiables();
+  const habitLow = active.length > 0 && getHabitCompletedCount(habitState.checks) < Math.ceil(active.length / 2);
+  const journalMissing = !hasJournalEntryToday();
+  const goalsUnderStandard = goals.length === 0 || getSuccessPercent(goals) < 50;
+
+  if ([habitLow, journalMissing, goalsUnderStandard].filter(Boolean).length >= 2) {
+    return {
+      type: "Drift",
+      strength: "danger",
+      text: "Drift detected: habits, journal, and/or goals are under standard. Reset with one faithful action."
+    };
+  }
+
+  return null;
+}
+
+function getDetectedPatterns() {
+  const candidates = [
+    getDriftPattern(),
+    getFinancePattern(),
+    getGoalCompletionPattern(),
+    getNonNegotiablePattern(),
+    getJournalPattern(),
+    getRecoveryPattern(),
+    getGoalPlanningPattern()
+  ].filter(Boolean);
+  const hasHabitSignals = Object.values(habitHistory).some(record => {
+    const completed = Number(record && record.completed) || getHabitCompletedCount(record && record.checks || {});
+    return completed > 0;
+  }) || getHabitCompletedCount(habitState.checks) > 0;
+  const hasEnoughData = goals.length > 0
+    || history.length > 0
+    || hasHabitSignals
+    || hasJournalEntries()
+    || financeEntries.length > 0
+    || financeTransactions.length > 0;
+
+  if (!hasEnoughData) {
+    return [];
+  }
+
+  return candidates;
+}
+
+function renderPatternList(container, limit = null) {
+  if (!container) {
+    return;
+  }
+
+  const patterns = getDetectedPatterns();
+
+  if (patterns.length === 0) {
+    container.innerHTML = '<p class="empty-state">Not enough history yet. Use the dashboard for a few more days to detect patterns.</p>';
+    return;
+  }
+
+  container.innerHTML = patterns
+    .slice(0, limit || patterns.length)
+    .map(pattern => `
+      <article class="pattern-card ${toCssClassToken(pattern.strength, "info")}">
+        <span>${escapeHtml(pattern.type)}</span>
+        <p>${escapeHtml(pattern.text)}</p>
+      </article>
+    `).join("");
+}
+
+function renderPatterns() {
+  renderPatternList(commandPatternList, 2);
+  renderPatternList(historyPatternList);
 }
 
 function getAccountabilityReportAnalysis(data, options = {}) {
@@ -2919,6 +3141,7 @@ function renderHistory() {
   if (history.length === 0) {
     historyList.innerHTML = '<p class="empty-state">No completed weeks saved yet.</p>';
     renderMonthlyScorecard();
+    renderPatterns();
     renderChart();
     return;
   }
@@ -2930,6 +3153,7 @@ function renderHistory() {
     historyList.innerHTML = `<p class="empty-state">No completed weeks saved for ${escapeHtml(getQuarterLabel(selectedHistoryQuarterKey))} yet.</p>`;
     showFullHistory = false;
     renderMonthlyScorecard();
+    renderPatterns();
     renderChart();
     return;
   }
@@ -2987,6 +3211,7 @@ function renderHistory() {
   }
 
   renderMonthlyScorecard();
+  renderPatterns();
   renderChart();
 }
 
@@ -5461,8 +5686,8 @@ function archiveCurrentWeek(weekRange = getCurrentWeekRange(), options = {}) {
       }
     });
 
-    saveHistory();
-  }
+  saveHistory();
+}
 
   goals = [];
   habitState = {
@@ -5478,6 +5703,7 @@ function archiveCurrentWeek(weekRange = getCurrentWeekRange(), options = {}) {
   renderHabits();
   renderHistory();
   renderWeeklyReview();
+  renderPatterns();
 }
 
 // Archives the full current week before clearing missions for a new week.
