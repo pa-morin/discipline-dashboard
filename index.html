@@ -70,13 +70,14 @@
     <section id="dailyCommandBriefing" class="panel daily-command-panel">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Daily Command Briefing</p>
-          <h2>Daily Command Briefing</h2>
+          <p class="eyebrow">Today&apos;s Focus</p>
+          <h2>Today&apos;s Focus</h2>
           <p id="dailyCommandSummary">Loading today&apos;s briefing...</p>
           <p id="briefingMessage" class="command-subsummary">Start the day. Win the first task.</p>
         </div>
         <button id="scrollWeekBtn" class="primary-button action-button" type="button">Plan Weekly Goals</button>
       </div>
+      <div id="dailyReadinessRow" class="readiness-row" aria-label="Today readiness status"></div>
       <div class="daily-command-grid">
         <article class="daily-command-card">
           <h3>Top 3 Actions</h3>
@@ -86,10 +87,13 @@
           <h3>Red Flags</h3>
           <div id="dailyRedFlags" class="command-flag-list"></div>
         </article>
-        <article id="minimumDayCard" class="daily-command-card minimum-day-card">
-          <h3>Minimum Day Plan</h3>
+        <details id="minimumDayCard" class="daily-command-card minimum-day-card">
+          <summary>
+            <span>Minimum Day Plan</span>
+            <small>Fallback if the day gets tight</small>
+          </summary>
           <ul id="minimumDayPlan" class="minimum-day-list"></ul>
-        </article>
+        </details>
       </div>
       <div class="briefing-grid command-briefing-grid">
         <div>

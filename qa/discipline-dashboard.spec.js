@@ -110,8 +110,11 @@ test("first run feels alive instead of blank", async ({ page }) => {
   await expect(page.locator("#commandTab > section").first()).toHaveClass(/bible-verse-card/);
   await expect(page.locator("#welcomePanel")).toBeVisible();
   await expect(page.locator("#dailyCommandBriefing")).toBeVisible();
+  await expect(page.locator("#dailyCommandBriefing")).toContainText("Today's Focus");
   await expect(page.locator("#dailyCommandSummary")).toContainText("Define the mission today");
   await expect(page.locator("#dailyRedFlags")).toContainText("No weekly goals exist");
+  await expect(page.locator("#dailyReadinessRow")).toContainText("Goals");
+  await expect(page.locator("#dailyReadinessRow")).toContainText("Needs goals");
   await expect(page.locator("#setupChecklist .checklist-item")).toHaveCount(5);
   await expect(page.locator("#todayMissionList")).toContainText("Add your first mission");
   await expect(page.locator("#accountabilityList")).toContainText("First mission not set yet");
@@ -120,7 +123,7 @@ test("first run feels alive instead of blank", async ({ page }) => {
   expect(consoleErrors).toEqual([]);
 });
 
-test("daily command briefing updates from goals and journal state", async ({ page }) => {
+test("today's focus updates actions, readiness, red flags, and fallback plan", async ({ page }) => {
   const consoleErrors = await openFreshApp(page);
   await completeSetup(page);
 
@@ -135,6 +138,26 @@ test("daily command briefing updates from goals and journal state", async ({ pag
   await expect(page.locator("#dailyRedFlags")).not.toContainText("No weekly goals exist");
   await expect(page.locator("#dailyTopActions")).toContainText("Finish command briefing");
   await expect(page.locator("#dailyRedFlags")).toContainText("Journal has not been written today");
+
+  await page.getByRole("button", { name: "Goals", exact: true }).click();
+  await page.locator("#goalList .goal-card").filter({ hasText: "Finish command briefing" }).getByText("Complete").click();
+  await page.getByRole("button", { name: "Command Center" }).click();
+  await page.locator("#habitList .habit-card").locator("input").evaluateAll(inputs => inputs.forEach(input => {
+    if (!input.checked) input.click();
+  }));
+  await page.getByRole("button", { name: "Journal" }).click();
+  await page.fill("#journalWonInput", "Kept the focus tight.");
+  await page.getByRole("button", { name: "Finance" }).click();
+  await addFinanceEntry(page, "Income", "100", "Focus paycheck");
+  await page.getByRole("button", { name: "Command Center" }).click();
+
+  await expect(page.locator("#dailyReadinessRow")).toContainText("Habits");
+  await expect(page.locator("#dailyReadinessRow")).toContainText("Complete");
+  await expect(page.locator("#dailyReadinessRow")).toContainText("Journal");
+  await expect(page.locator("#dailyReadinessRow")).toContainText("Done");
+  await expect(page.locator("#dailyRedFlags")).toContainText("No major red flags");
+  await expect(page.locator("#minimumDayCard")).not.toHaveAttribute("open", "");
+  await expect(page.locator("#todayMissionList")).toContainText("Weekly mission complete");
   expect(consoleErrors).toEqual([]);
 });
 

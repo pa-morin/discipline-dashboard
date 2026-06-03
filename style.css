@@ -637,27 +637,58 @@ h2 {
   background:
     linear-gradient(135deg, var(--accent-surface), transparent 55%),
     var(--card-bg);
+  padding: 14px;
 }
 
 .daily-command-panel .section-heading {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .daily-command-panel h2 {
-  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  font-size: clamp(1.18rem, 2vw, 1.45rem);
 }
 
 .daily-command-panel #dailyCommandSummary {
   max-width: 760px;
   margin-top: 4px;
   color: var(--text);
-  font-size: 1.02rem;
-  line-height: 1.45;
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
+.readiness-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.readiness-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: var(--soft-surface);
+}
+
+.readiness-pill span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.readiness-pill strong {
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
 }
 
 .daily-command-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(210px, 0.7fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(190px, 0.6fr);
   gap: 10px;
   margin-bottom: 10px;
 }
@@ -673,6 +704,10 @@ h2 {
   margin: 0 0 8px;
   font-size: 0.92rem;
   letter-spacing: 0;
+}
+
+.daily-command-card.compact-good-card {
+  align-self: start;
 }
 
 .command-subsummary {
@@ -722,6 +757,8 @@ h2 {
 .command-flag.good {
   border-color: rgba(66, 211, 146, 0.55);
   background: var(--accent-surface);
+  padding: 7px 9px;
+  font-size: 0.8rem;
 }
 
 .minimum-day-card {
@@ -729,7 +766,52 @@ h2 {
 }
 
 .minimum-day-card:not(.prominent) {
-  opacity: 0.82;
+  align-self: start;
+  padding: 0;
+  opacity: 0.9;
+  overflow: hidden;
+}
+
+.minimum-day-card summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.minimum-day-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.minimum-day-card summary::after {
+  content: "+";
+  color: var(--accent);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.minimum-day-card[open] summary::after {
+  content: "-";
+}
+
+.minimum-day-card summary span {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.minimum-day-card summary small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.minimum-day-card:not(.prominent) summary {
+  padding: 10px 12px;
+}
+
+.minimum-day-card:not(.prominent) .minimum-day-list {
+  margin: 0 12px 12px;
 }
 
 .minimum-day-card:not(.prominent) .minimum-day-list li {
@@ -739,9 +821,14 @@ h2 {
 
 .minimum-day-card.prominent {
   border-color: rgba(239, 71, 111, 0.64);
+  padding: 12px;
   background:
     linear-gradient(135deg, rgba(239, 71, 111, 0.12), transparent),
     var(--panel-light);
+}
+
+.minimum-day-card.prominent summary {
+  margin-bottom: 8px;
 }
 
 .discipline-score-panel {

@@ -463,6 +463,7 @@ const briefingMessage = document.getElementById("briefingMessage");
 const todayMissionList = document.getElementById("todayMissionList");
 const todayHabitList = document.getElementById("todayHabitList");
 const dailyCommandSummary = document.getElementById("dailyCommandSummary");
+const dailyReadinessRow = document.getElementById("dailyReadinessRow");
 const dailyTopActions = document.getElementById("dailyTopActions");
 const dailyRedFlags = document.getElementById("dailyRedFlags");
 const minimumDayCard = document.getElementById("minimumDayCard");
@@ -2226,6 +2227,7 @@ function getCurrentWeekFinanceSnapshot() {
 
 function getDailyCommandBriefing() {
   const totalGoals = goals.length;
+  const completedGoals = getCompletedCount(goals);
   const incompleteGoals = goals
     .map((goal, index) => ({ ...goal, originalIndex: index }))
     .filter(goal => !goal.done);
@@ -2236,6 +2238,7 @@ function getDailyCommandBriefing() {
   const journalDone = hasJournalEntryToday();
   const weeklyPercent = getSuccessPercent(goals);
   const financeSnapshot = getCurrentWeekFinanceSnapshot();
+  const hasFinanceData = financeEntries.length > 0 || financeTransactions.length > 0;
   const redFlags = [];
 
   if (totalGoals === 0) {
@@ -2265,7 +2268,7 @@ function getDailyCommandBriefing() {
     });
   }
 
-  let summary = "Hold the line today. Keep the basics steady and finish one concrete mission.";
+  let summary = "Hold the line today. Do the next faithful action and keep the basics clean.";
 
   if (totalGoals === 0) {
     summary = "Define the mission today. Add weekly goals before the day drifts.";
@@ -2277,6 +2280,8 @@ function getDailyCommandBriefing() {
     summary = "The day needs a record. Finish your work, then journal tonight.";
   } else if (financeSnapshot.net < 0 || financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0) {
     summary = "Money needs attention today. Review spending before adding anything new.";
+  } else if (totalGoals > 0 && completedGoals === totalGoals) {
+    summary = "Weekly mission complete. Prepare tomorrow's next action and keep the basics steady.";
   } else if (weeklyPercent >= 80 && completedHabits >= Math.ceil(activeNonNegotiables.length / 2)) {
     summary = "You are in a solid position. Stay faithful to the plan and finish clean.";
   }
@@ -2289,35 +2294,70 @@ function getDailyCommandBriefing() {
     actions.push("Add weekly goals and choose one priority mission.");
   } else if (firstPriority) {
     actions.push(`Complete priority mission: ${firstPriority.text}`);
-  } else if (firstIncomplete) {
+  } else if (firstIncomplete && completedGoals < totalGoals) {
     actions.push(`Complete one mission: ${firstIncomplete.text}`);
+  } else {
+    actions.push("Prepare tomorrow's next action while the week is clean.");
   }
 
   if (firstMissedHabit) {
     actions.push(`Check off ${firstMissedHabit.title}.`);
-  } else {
-    actions.push("Protect the non-negotiables you already completed.");
-  }
-
-  if (!journalDone) {
+  } else if (!journalDone) {
     actions.push("Write a short journal entry tonight.");
   } else if (financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0) {
     actions.push("Review current-week spending before the next purchase.");
-  } else if (financeEntries.length === 0 && financeTransactions.length === 0) {
+  } else if (!hasFinanceData) {
     actions.push("Add one finance entry so money is visible.");
   } else {
-    actions.push("Review spending and keep the next decision clean.");
+    actions.push("Keep the streak alive with one quiet act of discipline.");
   }
 
   if (actions.length < 3) {
-    actions.push("Complete one small mission before resting.");
+    if (!journalDone) {
+      actions.push("Journal tonight before the day closes.");
+    } else if (!hasFinanceData) {
+      actions.push("Add one finance entry so money is visible.");
+    } else {
+      actions.push("Review progress and set up tomorrow.");
+    }
+  }
+
+  if (actions.length < 3) {
+    actions.push("Protect prayer, movement, and one clean decision.");
   }
 
   return {
     summary,
     actions: actions.slice(0, 3),
     redFlags,
-    minimumDayProminent: redFlags.length >= 2 || weeklyPercent < 50 || completedHabits === 0
+    readiness: [
+      {
+        label: "Habits",
+        value: activeNonNegotiables.length === 0
+          ? "Needs setup"
+          : completedHabits === activeNonNegotiables.length
+            ? "Complete"
+            : `${completedHabits}/${activeNonNegotiables.length}`
+      },
+      {
+        label: "Goals",
+        value: totalGoals === 0
+          ? "Needs goals"
+          : completedGoals === totalGoals
+            ? "Complete"
+            : `${completedGoals}/${totalGoals}`
+      },
+      { label: "Journal", value: journalDone ? "Done" : "Open" },
+      {
+        label: "Finance",
+        value: !hasFinanceData
+          ? "Needs data"
+          : financeSnapshot.spending > financeSnapshot.income && financeSnapshot.spending > 0
+            ? "Review"
+            : "Visible"
+      }
+    ],
+    minimumDayProminent: redFlags.length >= 2 || weeklyPercent < 50 || (activeNonNegotiables.length > 0 && completedHabits === 0)
   };
 }
 
@@ -2337,6 +2377,14 @@ function renderDailyCommandBriefing() {
   ];
 
   dailyCommandSummary.textContent = briefing.summary;
+  if (dailyReadinessRow) {
+    dailyReadinessRow.innerHTML = briefing.readiness.map(item => `
+      <article class="readiness-pill">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+      </article>
+    `).join("");
+  }
   dailyTopActions.innerHTML = briefing.actions
     .map(action => `<li>${escapeHtml(action)}</li>`)
     .join("");
@@ -2346,7 +2394,10 @@ function renderDailyCommandBriefing() {
   minimumDayPlan.innerHTML = minimumPlan
     .map(item => `<li>${escapeHtml(item)}</li>`)
     .join("");
+  dailyRedFlags.closest(".daily-command-card").classList.toggle("compact-good-card", briefing.redFlags.length === 0);
+  dailyRedFlags.closest(".daily-command-card").classList.toggle("has-red-flags", briefing.redFlags.length > 0);
   minimumDayCard.classList.toggle("prominent", briefing.minimumDayProminent);
+  minimumDayCard.open = briefing.minimumDayProminent;
   renderDisciplineSystem();
 }
 
@@ -2523,11 +2574,19 @@ function renderBriefing() {
     .filter(goal => goal.day === todayName)
     .sort((a, b) => Number(b.priority) - Number(a.priority));
   const dailyPercent = getDailyProgressPercent();
+  const completedGoals = getCompletedCount(goals);
+  const allGoalsComplete = goals.length > 0 && completedGoals === goals.length;
 
   briefingMessage.textContent = getProgressMessage(dailyPercent);
   todayMissionList.innerHTML = todayGoals.length === 0
-    ? hasDashboardData()
-      ? '<p class="empty-state">No missions scheduled for today.</p>'
+    ? goals.length > 0
+      ? `<article class="compact-item clickable-item" data-accountability-action="current-week">
+          <div class="compact-main">
+            <strong>${allGoalsComplete ? "Weekly mission complete." : "No missions scheduled today."}</strong>
+            <span class="compact-meta">${allGoalsComplete ? "Prepare tomorrow's next action." : "Review weekly goals or assign one to today."}</span>
+          </div>
+          <span>${allGoalsComplete ? "Prepare" : "Review"}</span>
+        </article>`
       : `<article class="compact-item clickable-item" data-accountability-action="mission-form">
           <div class="compact-main">
             <strong>Add your first mission</strong>
