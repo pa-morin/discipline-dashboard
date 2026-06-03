@@ -637,30 +637,30 @@ h2 {
   background:
     linear-gradient(135deg, var(--accent-surface), transparent 55%),
     var(--card-bg);
-  padding: 14px;
+  padding: 10px 12px;
 }
 
 .daily-command-panel .section-heading {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .daily-command-panel h2 {
-  font-size: clamp(1.18rem, 2vw, 1.45rem);
+  font-size: clamp(1.05rem, 1.8vw, 1.28rem);
 }
 
 .daily-command-panel #dailyCommandSummary {
   max-width: 760px;
-  margin-top: 4px;
+  margin-top: 2px;
   color: var(--text);
-  font-size: 0.96rem;
-  line-height: 1.4;
+  font-size: 0.9rem;
+  line-height: 1.32;
 }
 
 .readiness-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .readiness-pill {
@@ -671,38 +671,38 @@ h2 {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 7px 9px;
+  padding: 5px 7px;
   background: var(--soft-surface);
 }
 
 .readiness-pill span {
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 800;
 }
 
 .readiness-pill strong {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   overflow-wrap: anywhere;
 }
 
 .daily-command-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(190px, 0.6fr);
-  gap: 10px;
-  margin-bottom: 10px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.85fr) minmax(170px, 0.55fr);
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .daily-command-card {
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 12px;
+  padding: 9px 10px;
   background: var(--panel-light);
 }
 
 .daily-command-card h3 {
-  margin: 0 0 8px;
-  font-size: 0.92rem;
+  margin: 0 0 6px;
+  font-size: 0.84rem;
   letter-spacing: 0;
 }
 
@@ -711,26 +711,32 @@ h2 {
 }
 
 .command-subsummary {
-  margin-top: 4px;
-  font-size: 0.86rem;
+  margin-top: 2px;
+  font-size: 0.78rem;
 }
 
 .command-briefing-grid {
   margin: 0;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--line);
+}
+
+.command-briefing-grid h3 {
+  margin: 0 0 6px;
+  font-size: 0.84rem;
 }
 
 .command-action-list,
 .minimum-day-list {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 18px;
 }
 
 .command-action-list li,
 .minimum-day-list li {
-  margin-bottom: 6px;
-  line-height: 1.35;
+  margin-bottom: 4px;
+  font-size: 0.84rem;
+  line-height: 1.28;
   overflow-wrap: anywhere;
 }
 
@@ -741,24 +747,24 @@ h2 {
 
 .command-flag-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .command-flag {
   border: 1px solid rgba(255, 209, 102, 0.45);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 7px 8px;
   background: rgba(255, 209, 102, 0.1);
-  font-size: 0.88rem;
-  line-height: 1.35;
+  font-size: 0.8rem;
+  line-height: 1.28;
   overflow-wrap: anywhere;
 }
 
 .command-flag.good {
   border-color: rgba(66, 211, 146, 0.55);
   background: var(--accent-surface);
-  padding: 7px 9px;
-  font-size: 0.8rem;
+  padding: 6px 8px;
+  font-size: 0.76rem;
 }
 
 .minimum-day-card {
@@ -797,21 +803,21 @@ h2 {
 }
 
 .minimum-day-card summary span {
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 800;
 }
 
 .minimum-day-card summary small {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
 }
 
 .minimum-day-card:not(.prominent) summary {
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .minimum-day-card:not(.prominent) .minimum-day-list {
-  margin: 0 12px 12px;
+  margin: 0 10px 10px;
 }
 
 .minimum-day-card:not(.prominent) .minimum-day-list li {
@@ -821,14 +827,32 @@ h2 {
 
 .minimum-day-card.prominent {
   border-color: rgba(239, 71, 111, 0.64);
-  padding: 12px;
+  padding: 9px 10px;
   background:
     linear-gradient(135deg, rgba(239, 71, 111, 0.12), transparent),
     var(--panel-light);
 }
 
 .minimum-day-card.prominent summary {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+}
+
+.today-mission-strip {
+  gap: 6px;
+}
+
+.today-mission-strip .compact-item {
+  padding: 8px 10px;
+}
+
+.compact-line {
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.mission-overflow-note {
+  margin: 0;
+  font-size: 0.76rem;
 }
 
 .discipline-score-panel {

@@ -461,7 +461,6 @@ const bibleVerseTheme = document.getElementById("bibleVerseTheme");
 const newBibleVerseBtn = document.getElementById("newBibleVerseBtn");
 const briefingMessage = document.getElementById("briefingMessage");
 const todayMissionList = document.getElementById("todayMissionList");
-const todayHabitList = document.getElementById("todayHabitList");
 const dailyCommandSummary = document.getElementById("dailyCommandSummary");
 const dailyReadinessRow = document.getElementById("dailyReadinessRow");
 const dailyTopActions = document.getElementById("dailyTopActions");
@@ -2578,23 +2577,13 @@ function renderBriefing() {
   const allGoalsComplete = goals.length > 0 && completedGoals === goals.length;
 
   briefingMessage.textContent = getProgressMessage(dailyPercent);
+  const visibleTodayGoals = todayGoals.slice(0, 2);
+
   todayMissionList.innerHTML = todayGoals.length === 0
     ? goals.length > 0
-      ? `<article class="compact-item clickable-item" data-accountability-action="current-week">
-          <div class="compact-main">
-            <strong>${allGoalsComplete ? "Weekly mission complete." : "No missions scheduled today."}</strong>
-            <span class="compact-meta">${allGoalsComplete ? "Prepare tomorrow's next action." : "Review weekly goals or assign one to today."}</span>
-          </div>
-          <span>${allGoalsComplete ? "Prepare" : "Review"}</span>
-        </article>`
-      : `<article class="compact-item clickable-item" data-accountability-action="mission-form">
-          <div class="compact-main">
-            <strong>Add your first mission</strong>
-            <span class="compact-meta">Choose one target for today or this week.</span>
-          </div>
-          <span>Start</span>
-        </article>`
-    : todayGoals.map(goal => `
+      ? `<p class="empty-state compact-line clickable-item" data-accountability-action="current-week">${allGoalsComplete ? "Weekly mission complete. Prepare tomorrow's next action." : "No missions scheduled today. Review weekly goals or assign one to today."}</p>`
+      : `<p class="empty-state compact-line clickable-item" data-accountability-action="mission-form">Add your first mission.</p>`
+    : `${visibleTodayGoals.map(goal => `
         <article class="compact-item clickable-item ${goal.done ? "done" : ""}" data-goal-jump-index="${goal.originalIndex}">
           <div class="compact-main">
             <strong>${escapeHtml(goal.text)}</strong>
@@ -2602,20 +2591,7 @@ function renderBriefing() {
           </div>
           <span>${goal.done ? "Done" : "Open"}</span>
         </article>
-      `).join("");
-
-  const activeNonNegotiables = getActiveNonNegotiables();
-  todayHabitList.innerHTML = activeNonNegotiables.length === 0
-    ? '<p class="empty-state">No active non-negotiables yet.</p>'
-    : activeNonNegotiables.map(item => `
-    <article class="compact-item ${isHabitChecked(item) ? "done" : ""}">
-      <div class="compact-main">
-        <strong>${escapeHtml(item.title)}</strong>
-        <span class="compact-meta">Non-negotiable</span>
-      </div>
-      <span>${isHabitChecked(item) ? "Done" : "Open"}</span>
-    </article>
-  `).join("");
+      `).join("")}${todayGoals.length > 2 ? `<p class="compact-meta mission-overflow-note">+${todayGoals.length - 2} more scheduled today.</p>` : ""}`;
 
   renderDailyCommandBriefing();
 }
