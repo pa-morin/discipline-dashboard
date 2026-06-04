@@ -734,6 +734,60 @@ test("briefing and accountability warnings jump to the right parts of the comman
   await expect(page.locator("#goalList .goal-card").first()).toHaveClass(/temporary-highlight/);
 });
 
+test("today's missions render as compact rows with show all overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 900 });
+  const consoleErrors = await openFreshApp(page);
+  await completeSetup(page);
+
+  const today = await page.evaluate(() => new Date().toLocaleDateString("en-US", { weekday: "long" }));
+  const longMission = "This is a very long today mission name that should wrap cleanly without creating sideways scrolling in the command list";
+
+  for (let index = 1; index <= 11; index++) {
+    await addMission(page, index === 1 ? longMission : `Today mission ${index}`, today, index === 1);
+  }
+
+  await page.getByRole("button", { name: "Command Center" }).click();
+  await expect(page.locator("#todayMissionList .today-mission-row")).toHaveCount(10);
+  await expect(page.locator("#todayMissionList")).toContainText(longMission);
+  await expect(page.locator("#todayMissionList")).toContainText("Priority");
+  await expect(page.locator("#todayMissionList")).toContainText("Open");
+  await expect(page.locator("#todayMissionList")).toContainText("Show all today's missions (11)");
+
+  const averageRowHeight = await page.locator("#todayMissionList .today-mission-row").evaluateAll(rows => {
+    const totalHeight = rows.reduce((sum, row) => sum + row.getBoundingClientRect().height, 0);
+    return totalHeight / rows.length;
+  });
+  expect(averageRowHeight).toBeLessThan(34);
+  const desktopLayout = await page.locator("#todayMissionList .today-mission-row").evaluateAll(rows => {
+    const rects = rows.map(row => row.getBoundingClientRect());
+    const lefts = [...new Set(rects.map(rect => Math.round(rect.left)))];
+    const tops = [...new Set(rects.map(rect => Math.round(rect.top)))];
+
+    return { columnCount: lefts.length, rowCount: tops.length };
+  });
+  expect(desktopLayout).toEqual({ columnCount: 2, rowCount: 5 });
+
+  await page.locator("[data-today-missions-toggle]").evaluate(button => button.click());
+  await expect(page.locator("#todayMissionList .today-mission-row")).toHaveCount(11);
+  await expect(page.locator("#todayMissionList")).toContainText("Today mission 11");
+
+  await page.locator("#todayMissionList .today-mission-row").first().evaluate(row => row.click());
+  await expect(page.locator("#goalList .goal-card").filter({ hasText: longMission })).toHaveClass(/temporary-highlight/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Command Center" }).click();
+  const missionOverflow = await page.locator("#todayMissionList").evaluate(list => {
+    const viewportWidth = document.documentElement.clientWidth;
+    return [...list.querySelectorAll("*")]
+      .filter(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && (rect.right > viewportWidth + 2 || rect.left < -2);
+      })
+      .map(element => element.className || element.tagName);
+  });
+  expect(missionOverflow).toEqual([]);
+  expect(consoleErrors).toEqual([]);
+});
+
 test("non-negotiables save to localStorage and survive reload", async ({ page }) => {
   await openFreshApp(page);
   await completeSetup(page);

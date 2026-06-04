@@ -34,6 +34,7 @@ const tabLabels = {
 const defaultNonNegotiableTitles = ["Prayer", "Workout", "Reading", "Journal", "Bed Made"];
 const defaultGoalCategoryNames = ["School", "Fitness", "Faith", "Money", "Personal"];
 const weekDayOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const todayMissionPreviewLimit = 10;
 const spendingCategories = ["Food", "Gas", "Subscriptions", "Car", "School", "Shopping", "Entertainment", "Other"];
 const spendingTags = ["Need", "Want"];
 const dailyQuotes = [
@@ -406,6 +407,7 @@ let financeSimpleChart = null;
 let spendingCategoryChart = null;
 let editingIndex = null;
 let isGoalSubmitLocked = false;
+let showAllTodayMissions = false;
 let editingPlanningGoal = null;
 let editingFinanceIndex = null;
 let isWeekCollapsed = readJson(weekCollapsedKey, null);
@@ -3079,21 +3081,31 @@ function renderBriefing() {
   const allGoalsComplete = goals.length > 0 && completedGoals === goals.length;
 
   briefingMessage.textContent = getProgressMessage(dailyPercent);
-  const visibleTodayGoals = todayGoals.slice(0, 2);
+  const visibleTodayGoals = showAllTodayMissions
+    ? todayGoals
+    : todayGoals.slice(0, todayMissionPreviewLimit);
+  const hasHiddenTodayGoals = todayGoals.length > todayMissionPreviewLimit;
 
   todayMissionList.innerHTML = todayGoals.length === 0
     ? goals.length > 0
       ? `<p class="empty-state compact-line clickable-item" data-accountability-action="current-week">${allGoalsComplete ? "Weekly mission complete. Prepare tomorrow's next action." : "No missions scheduled today. Review weekly goals or assign one to today."}</p>`
       : `<p class="empty-state compact-line clickable-item" data-accountability-action="mission-form">Add your first mission.</p>`
     : `${visibleTodayGoals.map(goal => `
-        <article class="compact-item clickable-item ${goal.done ? "done" : ""}" data-goal-jump-index="${goal.originalIndex}">
+        <article class="compact-item today-mission-row clickable-item ${goal.done ? "done" : ""}" data-goal-jump-index="${goal.originalIndex}">
           <div class="compact-main">
             <strong>${escapeHtml(goal.text)}</strong>
-            <span class="compact-meta">${escapeHtml(goal.category)}${goal.priority ? " - Priority" : ""}</span>
+            <span class="compact-meta">${escapeHtml(goal.category)} / ${escapeHtml(goal.day)}</span>
           </div>
-          <span>${goal.done ? "Done" : "Open"}</span>
+          <span class="today-mission-status">
+            ${goal.priority ? '<span class="mission-pill priority">Priority</span>' : ""}
+            <span class="mission-pill ${goal.done ? "done" : "open"}">${goal.done ? "Done" : "Open"}</span>
+          </span>
         </article>
-      `).join("")}${todayGoals.length > 2 ? `<p class="compact-meta mission-overflow-note">+${todayGoals.length - 2} more scheduled today.</p>` : ""}`;
+      `).join("")}${hasHiddenTodayGoals ? `
+        <button class="small-button secondary-button today-missions-toggle" type="button" data-today-missions-toggle>
+          ${showAllTodayMissions ? "Show fewer today's missions" : `Show all today's missions (${todayGoals.length})`}
+        </button>
+      ` : ""}`;
 
   renderDailyCommandBriefing();
 }
@@ -6157,6 +6169,11 @@ bindDelegatedClick(dailyRedFlags, "[data-accountability-action]", target => {
 
 bindDelegatedClick(todayMissionList, "[data-accountability-action]", target => {
   handleAccountabilityClick(target.dataset.accountabilityAction);
+});
+
+bindDelegatedClick(todayMissionList, "[data-today-missions-toggle]", () => {
+  showAllTodayMissions = !showAllTodayMissions;
+  renderBriefing();
 });
 
 bindDelegatedClick(nonNegotiableEditorList, "[data-non-negotiable-action]", target => {
